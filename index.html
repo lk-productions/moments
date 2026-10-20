@@ -7,8 +7,8 @@
   <title>LK Moments</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="config.js?v=20261021a"></script>
-  <script src="shared.js?v=20261021a"></script>
+  <script src="config.js?v=20261021b"></script>
+  <script src="shared.js?v=20261021b"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -247,7 +247,12 @@
     .voice-row { display: flex; gap: 10px; align-items: center; }
     .voice-row audio { flex: 1; min-width: 0; height: 40px; }
     .mini-btn.recording { border-color: var(--danger); color: var(--danger); }
-    .lang-toggle { align-self: center; background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; padding: 6px; }
+    /* Language switch: top-right on every screen. */
+    .lang-toggle {
+      position: fixed; top: max(10px, env(safe-area-inset-top)); right: 12px; z-index: 20;
+      font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 999px;
+      background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
 
     /* Branding */
     .logo { display: block; margin: 4px auto 0; max-width: 72%; max-height: 84px; object-fit: contain; }
@@ -264,6 +269,7 @@
   </style>
 </head>
 <body>
+<button class="lang-toggle" id="lang-toggle" hidden>Español</button>
 <main>
   <div class="live-banner" id="live-banner" hidden><b id="live-text"></b><span id="live-count"></span></div>
   <!-- Welcome -->
@@ -301,7 +307,6 @@
     </div>
     <div class="spacer"></div>
     <button class="btn" id="start" data-copy="startButton">Open the camera</button>
-    <button class="lang-toggle" id="lang-toggle" hidden>Español</button>
   </section>
 
   <!-- Camera -->
