@@ -7,8 +7,8 @@
   <title>LK Moments</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="config.js?v=20261021b"></script>
-  <script src="shared.js?v=20261021b"></script>
+  <script src="config.js?v=20261021c"></script>
+  <script src="shared.js?v=20261021c"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -202,6 +202,7 @@
       display: flex; gap: 4px; align-items: center; -webkit-tap-highlight-color: transparent;
     }
     .reel-heart.on { background: #c0392b; color: #fff; }
+    .reel-heart span:empty { display: none; }
     .reel-heart:active { transform: scale(.92); }
     .reel-play { position: absolute; left: 8px; bottom: 8px; z-index: 2; color: #fff; font-size: 13px; background: rgba(0,0,0,.55); padding: 4px 8px; border-radius: 999px; }
     .developing { text-align: center; background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 14px; color: var(--muted); }
@@ -596,6 +597,7 @@
       rc.appendChild(b);
     });
     $('booth-btn').hidden = !(f.booth && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    $('booth-btn').textContent = t(f.boothStyle === 'strip' ? '📸 Photo strip · 4 in a row' : '📸 Photo booth · 4 in a row');
     $('gb-voice-row').hidden = !(f.voice && window.MediaRecorder);
     document.querySelectorAll('[data-songs-slot]').forEach((b) => { b.hidden = !f.songs; });
   }
@@ -780,15 +782,26 @@
 
   async function renderPhoto(maxPixels) {
     const img = await loadImage(pendingUrl);
-    const scale = Math.min(1, maxPixels / Math.max(img.naturalWidth, img.naturalHeight));
+    // With a custom frame the photo takes the frame's shape (trimmed from the middle), so the
+    // frame is never stretched. Booth sheets already have their own layout.
+    const frame = !pendingBooth && features().frame === 'custom' ? await loadFrame() : null;
+    let sw = img.naturalWidth, sh = img.naturalHeight, sx = 0, sy = 0;
+    let w = sw, h = sh;
+    if (frame) {
+      const aspect = frame.naturalWidth / frame.naturalHeight;
+      if (sw / sh > aspect) { sw = Math.round(sh * aspect); sx = Math.round((img.naturalWidth - sw) / 2); }
+      else { sh = Math.round(sw / aspect); sy = Math.round((img.naturalHeight - sh) / 2); }
+      w = frame.naturalWidth; h = frame.naturalHeight;
+    }
+    const scale = Math.min(1, maxPixels / Math.max(w, h));
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(img.naturalWidth * scale);
-    canvas.height = Math.round(img.naturalHeight * scale);
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     applyLook(ctx, canvas.width, canvas.height, chosenLook());
-    if (features().stamp) drawStamp(ctx, canvas.width, canvas.height);
-    await drawFrame(ctx, canvas.width, canvas.height);
+    const band = await drawFrame(ctx, canvas.width, canvas.height, frame);
+    if (features().stamp && !pendingBooth) drawStamp(ctx, canvas.width, canvas.height - band); // booth sheets print their own date
     return canvas;
   }
 
@@ -912,7 +925,7 @@
   const reels = [...document.querySelectorAll('.reel')];
   reels.forEach((r) => {
     r.innerHTML = '<div class="reel-photo"><img alt=""><img alt="">' +
-      '<span class="reel-play" hidden>▶ clip</span><button class="reel-heart" hidden>♥ <span></span></button></div><p class="reel-cap"></p>';
+      '<span class="reel-play" hidden>▶ clip</span><button class="reel-heart" hidden>♥<span></span></button></div><p class="reel-cap"></p>';
     r.querySelector('.reel-heart').addEventListener('click', () => toggleHeart(r));
   });
 
@@ -1263,30 +1276,44 @@
   }
 
   let pendingBooth = false;
-  async function drawFrame(ctx, w, h) {
-    if (pendingBooth) return; // the booth sheet has its own caption
+  // Draws the event's frame; returns how much of the bottom it covers (for the date stamp).
+  async function drawFrame(ctx, w, h, frame) {
+    if (pendingBooth) return 0; // the booth sheet has its own caption
     const mode = features().frame;
     if (mode === 'custom') {
-      const img = await loadFrame();
-      if (img) ctx.drawImage(img, 0, 0, w, h);
-      return;
+      if (frame) ctx.drawImage(frame, 0, 0, w, h);
+      return 0;
     }
-    if (mode !== 'band') return;
+    if (mode !== 'band') return 0;
     const css = getComputedStyle(document.documentElement);
-    const band = Math.round(h * 0.09);
+    const band = Math.round(Math.min(w, h) * 0.11);
+    const pad = band * 0.4;
     ctx.save();
     ctx.fillStyle = css.getPropertyValue('--accent').trim() || '#a8784f';
     ctx.fillRect(0, h - band, w, band);
     ctx.fillStyle = css.getPropertyValue('--accent-ink').trim() || '#fff';
     ctx.textBaseline = 'middle';
     const font = getComputedStyle(document.querySelector('h1')).fontFamily;
-    ctx.font = '600 ' + Math.round(band * 0.42) + 'px ' + font;
-    ctx.textAlign = 'left';
-    ctx.fillText(CONFIG.title, band * 0.45, h - band / 2, w * 0.62);
+    // The date on the right, then the name in whatever room is left: smaller if it has to be,
+    // and cut short with "…" rather than ever running into the date.
+    const date = CONFIG.date || '';
     ctx.font = '500 ' + Math.round(band * 0.3) + 'px ' + font;
+    const dateW = date ? ctx.measureText(date).width : 0;
     ctx.textAlign = 'right';
-    ctx.fillText(CONFIG.date || '', w - band * 0.45, h - band / 2, w * 0.32);
+    if (date) ctx.fillText(date, w - pad, h - band / 2);
+    const room = w - pad * 2 - (date ? dateW + pad : 0);
+    let size = band * 0.42;
+    ctx.font = '600 ' + Math.round(size) + 'px ' + font;
+    while (ctx.measureText(CONFIG.title).width > room && size > band * 0.26) {
+      size -= 1;
+      ctx.font = '600 ' + Math.round(size) + 'px ' + font;
+    }
+    let title = CONFIG.title;
+    while (title.length > 1 && ctx.measureText(title).width > room) title = title.slice(0, -2).trimEnd() + '…';
+    ctx.textAlign = 'left';
+    ctx.fillText(title, pad, h - band / 2);
     ctx.restore();
+    return band;
   }
 
   // ---- Photo booth: 3-2-1, four shots, one strip ----
@@ -1335,30 +1362,7 @@
       $('booth-thumbs').appendChild(thumb);
       await wait(500);
     }
-    // A 2 × 2 sheet with the event's name underneath: fits a TV better than a tall strip.
-    const cell = 900, gap = 24, foot = 150;
-    const sheet = document.createElement('canvas');
-    sheet.width = cell * 2 + gap * 3;
-    sheet.height = Math.round(cell * 0.75) * 2 + gap * 3 + foot;
-    const g = sheet.getContext('2d');
-    g.fillStyle = '#ffffff';
-    g.fillRect(0, 0, sheet.width, sheet.height);
-    const ch = Math.round(cell * 0.75);
-    shots.forEach((c, i) => {
-      const x = gap + (i % 2) * (cell + gap), y = gap + Math.floor(i / 2) * (ch + gap);
-      const scale = Math.max(cell / c.width, ch / c.height);
-      const sw = cell / scale, sh = ch / scale;
-      g.drawImage(c, (c.width - sw) / 2, (c.height - sh) / 2, sw, sh, x, y, cell, ch);
-    });
-    const css = getComputedStyle(document.documentElement);
-    g.fillStyle = css.getPropertyValue('--ink').trim() || '#222';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.font = '600 56px ' + getComputedStyle(document.querySelector('h1')).fontFamily;
-    g.fillText(CONFIG.title, sheet.width / 2, sheet.height - foot / 2 - 14, sheet.width - 80);
-    g.font = '500 30px ' + getComputedStyle(document.body).fontFamily;
-    g.fillStyle = css.getPropertyValue('--muted').trim() || '#777';
-    g.fillText(CONFIG.date || '', sheet.width / 2, sheet.height - foot / 2 + 38);
+    const sheet = features().boothStyle === 'strip' ? await stripSheet(shots) : gridSheet(shots);
     stopBooth();
     const blob = await new Promise((r) => sheet.toBlob(r, 'image/jpeg', 0.92));
     pendingClip = null;
@@ -1376,6 +1380,72 @@
     updatePreview();
     show('review');
   }
+  // Draws a shot into a window, trimmed from the middle to the window's shape.
+  function drawInto(g, c, x, y, w, h) {
+    const scale = Math.max(w / c.width, h / c.height);
+    const sw = w / scale, sh = h / scale;
+    g.drawImage(c, (c.width - sw) / 2, (c.height - sh) / 2, sw, sh, x, y, w, h);
+  }
+
+  function caption(g, cx, y, maxW, titlePx, datePx) {
+    const css = getComputedStyle(document.documentElement);
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillStyle = css.getPropertyValue('--ink').trim() || '#222';
+    let size = titlePx;
+    const font = getComputedStyle(document.querySelector('h1')).fontFamily;
+    g.font = '600 ' + size + 'px ' + font;
+    while (g.measureText(CONFIG.title).width > maxW && size > titlePx * 0.5) { size -= 2; g.font = '600 ' + size + 'px ' + font; }
+    g.fillText(CONFIG.title, cx, y, maxW);
+    g.font = '500 ' + datePx + 'px ' + getComputedStyle(document.body).fontFamily;
+    g.fillStyle = css.getPropertyValue('--muted').trim() || '#777';
+    g.fillText(CONFIG.date || '', cx, y + titlePx * 0.85);
+  }
+
+  // A 2 × 2 sheet with the event's name underneath: fits a TV better than a tall strip.
+  function gridSheet(shots) {
+    const cell = 900, gap = 24, foot = 150, ch = 675;
+    const sheet = document.createElement('canvas');
+    sheet.width = cell * 2 + gap * 3;
+    sheet.height = ch * 2 + gap * 3 + foot;
+    const g = sheet.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, sheet.width, sheet.height);
+    shots.forEach((c, i) => drawInto(g, c, gap + (i % 2) * (cell + gap), gap + Math.floor(i / 2) * (ch + gap), cell, ch));
+    caption(g, sheet.width / 2, sheet.height - foot / 2 - 18, sheet.width - 80, 56, 30);
+    return sheet;
+  }
+
+  // A classic 2 × 6 photo strip, 1200 × 3600: four 1080 × 810 windows at x 60 and y 60, 910,
+  // 1760, 2610, and a 180-tall footer. The event's "Booth frame" PNG (same size) goes on top;
+  // without one the footer gets the event's name and date.
+  const STRIP = { w: 1200, h: 3600, x: 60, win: [1080, 810], ys: [60, 910, 1760, 2610], foot: 3420 };
+  async function stripSheet(shots) {
+    const sheet = document.createElement('canvas');
+    sheet.width = STRIP.w;
+    sheet.height = STRIP.h;
+    const g = sheet.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, STRIP.w, STRIP.h);
+    shots.forEach((c, i) => drawInto(g, c, STRIP.x, STRIP.ys[i], STRIP.win[0], STRIP.win[1]));
+    const frame = await loadBoothFrame();
+    if (frame) g.drawImage(frame, 0, 0, STRIP.w, STRIP.h);
+    else caption(g, STRIP.w / 2, STRIP.foot + 70, STRIP.w - 120, 64, 34);
+    return sheet;
+  }
+
+  let boothFrameImage = null;
+  function loadBoothFrame() {
+    if (boothFrameImage || !CONFIG.boothFrame) return Promise.resolve(boothFrameImage);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { boothFrameImage = img; resolve(img); };
+      img.onerror = () => resolve(null);
+      img.src = Camera.assetUrl(CONFIG.boothFrame, 1200);
+    });
+  }
+
   $('booth-btn').addEventListener('click', openBooth);
   $('booth-go').addEventListener('click', runBooth);
   $('booth-flip').addEventListener('click', () => { boothFacing = boothFacing === 'user' ? 'environment' : 'user'; startBoothCamera(); });
@@ -1500,7 +1570,7 @@
     'Request a song for the DJ': 'Pídele una canción al DJ', 'What should the DJ play?': '¿Qué debería tocar el DJ?',
     'Song': 'Canción', 'Artist (optional)': 'Artista (opcional)', 'Request it': 'Pedirla', 'Voted': 'Votado',
     'Requested! The DJ will see it.': '¡Pedida! El DJ la verá.', 'Roll': 'Rollo', 'Photo challenge · optional': 'Reto de foto · opcional',
-    '📸 Photo booth · 4 in a row': '📸 Cabina de fotos · 4 seguidas', 'Photo booth': 'Cabina de fotos', 'Start · 4 photos': 'Empezar · 4 fotos',
+    '📸 Photo booth · 4 in a row': '📸 Cabina de fotos · 4 seguidas', '📸 Photo strip · 4 in a row': '📸 Tira de fotos · 4 seguidas', 'Photo booth': 'Cabina de fotos', 'Start · 4 photos': 'Empezar · 4 fotos',
     'Flip camera': 'Cambiar cámara', 'Back': 'Atrás', 'Tap the shutter to take a photo.': 'Toca el obturador para tomar una foto.',
     'shots left': 'fotos restantes', 'shot left': 'foto restante', 'Nice shot': '¡Buena foto!', 'Add to the album': 'Agregar al álbum',
     'Retake': 'Repetir', 'Pick a look': 'Elige un estilo', 'Original': 'Original', 'Film': 'Película', 'B&W': 'B y N', 'Vintage': 'Vintage',

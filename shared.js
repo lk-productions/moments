@@ -20,7 +20,7 @@
     features: {
       guestbook: true, hearts: true, look: 'choose', stamp: true, video: false, clipSeconds: 10, clips: 1,
       develop: { at: '', screens: true, until: 0 }, developing: false, album: true,
-      booth: true, frame: 'band', tables: true, voice: true, songs: true, spanish: true,
+      booth: true, boothStyle: params.get('booth') === 'strip' ? 'strip' : 'grid', frame: 'band', tables: true, voice: true, songs: true, spanish: true,
       rolls: [{ id: 'ceremony', text: 'Ceremony' }, { id: 'reception', text: 'Reception' }],
       challenges: [{ id: 'dance', text: 'Someone on the dance floor' }, { id: 'oldest', text: 'The longest-married couple' },
         { id: 'selfie', text: 'A selfie with the couple' }],
