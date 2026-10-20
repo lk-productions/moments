@@ -105,6 +105,8 @@
     modern: { serif: '"DM Sans", Inter, sans-serif', sans: '"DM Sans"', load: 'DM+Sans:wght@400;500;600;700' },
     elegant: { serif: '"Playfair Display", Georgia, serif', sans: 'Inter', load: 'Playfair+Display:ital,wght@0,500;0,600;1,500' },
     script: { serif: '"Great Vibes", "Snell Roundhand", cursive', sans: 'Inter', load: 'Great+Vibes' },
+    // Lewis University: Montserrat, the brand's headline and body face.
+    lewis: { serif: 'Montserrat, "Avenir Next", sans-serif', sans: 'Montserrat', load: 'Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,500' },
   };
 
   function applyFont(name) {

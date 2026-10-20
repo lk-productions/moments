@@ -16,5 +16,7 @@ window.THEMES = {
   terracotta: { background: '#f7efe8', card: '#fffaf6', text: '#33241c', muted: '#80695c', accent: '#b45a37', accentText: '#ffffff', line: '#ead9cc' },
   crimson:    { background: '#f7f4f2', card: '#ffffff', text: '#1f1a1a', muted: '#6e6464', accent: '#b3122e', accentText: '#ffffff', line: '#e6dfdc' },
   navy:       { background: '#f2f4f8', card: '#ffffff', text: '#14203a', muted: '#5f6b80', accent: '#1f3a6e', accentText: '#ffffff', line: '#dbe1ea' },
+  // Lewis University brand book: Lewis Red, warm greys, light beige.
+  lewis:      { background: '#f5f3ec', card: '#ffffff', text: '#1a1a1a', muted: '#51534a', accent: '#940731', accentText: '#ffffff', line: '#e3e0d4' },
   blackTie:   { background: '#121212', card: '#1d1d1d', text: '#f3efe8', muted: '#a39d94', accent: '#c9a96a', accentText: '#1a1612', line: '#333030' },
 };
