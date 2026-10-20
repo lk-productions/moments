@@ -65,17 +65,24 @@
     },
   };
 
+  // "{shots} shots" / "{shots} photos" read "1 shot" / "1 photo" for a one-shot camera.
+  function fill(text, ev) {
+    let t = String(text);
+    if (Number(ev.shots) === 1) t = t.replace(/\{shots\} (shot|photo)s\b/g, '1 $1');
+    return t.replace(/\{shots\}/g, ev.shots).replace(/\{title\}/g, ev.title);
+  }
+
   function copyFor(ev) {
     const base = COPY[ev.mode] || COPY.wedding;
     const out = {};
     Object.keys(base).forEach((k) => {
-      out[k] = base[k].replace(/\{shots\}/g, ev.shots).replace(/\{title\}/g, ev.title);
+      out[k] = fill(base[k], ev);
     });
     if (ev.headline) out.headline = ev.headline;
     // Per-event wording from the Mac app replaces the built-in text.
     const custom = ev.text || {};
     Object.keys(custom).forEach((k) => {
-      if (custom[k]) out[k] = String(custom[k]).replace(/\{shots\}/g, ev.shots).replace(/\{title\}/g, ev.title);
+      if (custom[k]) out[k] = fill(custom[k], ev);
     });
     return out;
   }
