@@ -7,8 +7,8 @@
   <title>LK Moments</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="config.js?v=20261020c"></script>
-  <script src="shared.js?v=20261020c"></script>
+  <script src="config.js?v=20261020d"></script>
+  <script src="shared.js?v=20261020d"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -425,6 +425,7 @@
   function show(name) {
     screens.forEach((s) => { $('screen-' + s).hidden = s !== name; });
     window.scrollTo(0, 0);
+    Camera.fitTitles();
   }
   function currentScreen() {
     return screens.find((s) => !$('screen-' + s).hidden);

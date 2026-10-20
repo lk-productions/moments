@@ -96,8 +96,26 @@
     });
     document.querySelectorAll('[data-title]').forEach((el) => { el.textContent = ev.title; });
     document.querySelectorAll('[data-date]').forEach((el) => { el.textContent = ev.date; });
+    fitTitles();
     return c;
   }
+
+  // Shrinks a big title until its longest word fits the screen, so a long word like
+  // "Commencement" in a wide face never spills off the edge. Hidden titles are fitted when shown.
+  function fitTitles() {
+    document.querySelectorAll('h1[data-title], h2[data-title]').forEach((el) => {
+      if (!el.offsetParent || el.closest('.qr-card')) return;
+      el.style.fontSize = '';
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > el.clientWidth + 1 && size > 18) {
+        size -= 1;
+        el.style.fontSize = size + 'px';
+      }
+    });
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitles);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fitTitles);
+  window.addEventListener('resize', () => fitTitles());
 
   // White or near-black text, whichever reads better on the given colour.
   function textOn(hex) {
@@ -377,6 +395,6 @@
   window.Camera = {
     eventId: demo && !eventId ? 'demo' : eventId, demo,
     loadEvent, applyTheme, applyFont, applyBranding, assetUrl, applyCopy, copyFor, listPhotos, uploadPhoto, photoUrl, photoFallbackUrl, pageUrl,
-    adminPhotos, moderate, listPolls, vote, sendMessage, heart, star, moderateMessages, uploadClip, videoUrl,
+    fitTitles, adminPhotos, moderate, listPolls, vote, sendMessage, heart, star, moderateMessages, uploadClip, videoUrl,
   };
 })();
