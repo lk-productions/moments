@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-  <script src="config.js?v=20261020d"></script>
-  <script src="shared.js?v=20261020d"></script>
+  <script src="config.js?v=20261021a"></script>
+  <script src="shared.js?v=20261021a"></script>
   <style>
     :root { --accent: #a8784f; --serif: "Cormorant Garamond", Georgia, serif; }
     * { box-sizing: border-box; }
@@ -219,6 +219,28 @@
       padding: .3em .8em; font-size: clamp(14px, 1.6vw, 30px); font-weight: 600;
     }
     .fave span.by { left: 1vw; right: auto; font-family: var(--serif); font-style: italic; font-weight: 500; }
+    .ann {
+      position: fixed; top: 3vh; left: 50%; transform: translateX(-50%); z-index: 6; max-width: 80vw;
+      background: var(--accent); color: #fff; border-radius: 18px; padding: 1.6vh 3vw; text-align: center;
+      font-size: clamp(22px, 3vw, 56px); font-weight: 700; box-shadow: 0 16px 50px rgba(0,0,0,.45);
+      animation: rise .8s cubic-bezier(.2,.8,.3,1) both;
+    }
+    .cd {
+      position: fixed; top: 3vh; right: 3vw; z-index: 6; background: rgba(0,0,0,.72); color: #fff; border-radius: 16px;
+      padding: 1.2vh 1.6vw; text-align: center; font-variant-numeric: tabular-nums; backdrop-filter: blur(8px);
+    }
+    .cd small { display: block; font-size: clamp(12px, 1.2vw, 22px); opacity: .85; letter-spacing: .08em; text-transform: uppercase; }
+    .cd b { font-size: clamp(28px, 3.6vw, 72px); }
+    .spot { position: fixed; inset: 0; z-index: 5; background: #000 center / cover; opacity: 0; transition: opacity .9s ease; }
+    .spot.on { opacity: 1; }
+    .spot .blur { position: absolute; inset: -40px; background: inherit; filter: blur(40px) brightness(.4); }
+    .spot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+    .spot p {
+      position: absolute; left: 50%; bottom: 5vh; transform: translateX(-50%); margin: 0; background: var(--accent); color: #fff;
+      padding: 1.2vh 2.4vw; border-radius: 999px; font-size: clamp(20px, 2.6vw, 48px); font-weight: 700; white-space: nowrap;
+    }
+    .winner-name { font-family: var(--serif); font-weight: 600; font-size: clamp(60px, 11vw, 220px); line-height: 1; text-align: center; padding: 4vh 0; animation: rise 1s both; }
+    .winner-sub { text-align: center; color: #ccc; font-size: clamp(16px, 1.8vw, 32px); }
     .clip { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; z-index: 1; opacity: 0; transition: opacity .8s ease; }
     .clip.on { opacity: 1; }
 
@@ -258,6 +280,9 @@
   <div class="wall" id="wall" hidden></div>
   <div class="pile" id="pile" hidden></div>
   <video class="clip" id="clip" muted playsinline hidden></video>
+  <div class="spot" id="spot" hidden><div class="blur"></div><img alt=""><p></p></div>
+  <div class="ann" id="ann" hidden></div>
+  <div class="cd" id="cd" hidden><small></small><b></b></div>
   <div class="shade" id="shade" hidden></div>
   <div class="poll-scene" id="poll-scene" hidden>
     <p class="eyebrow">Live poll</p>
@@ -321,9 +346,17 @@
   const STYLE = STYLES.includes(params.get('style')) ? params.get('style') : 'classic';
   const SLIDE_MS = Math.max(3, Math.min(30, Number(params.get('secs')) || 7)) * 1000;
   const REFRESH_MS = 20000;
-  const SHOW = (params.get('show') || 'photos,polls,words,messages,board,favorites,challenges').split(',');
-  const want = (k) => SHOW.includes(k) && params.get('extras') !== '0' && !(k === 'polls' && params.get('polls') === '0');
-  const WANT_PHOTOS = SHOW.includes('photos');
+  const ALL_EXTRAS = 'photos,polls,words,messages,board,favorites,challenges,tables,songs';
+  // The run-of-show page can point every screen at one thing; a screen with its own &show= keeps it.
+  const SCREEN_FOCUS = { photos: 'photos', polls: 'polls,words', messages: 'messages', board: 'board',
+    favorites: 'favorites', challenges: 'challenges', tables: 'tables', songs: 'songs' };
+  let liveNow = {};
+  function showList() {
+    if (params.get('show')) return params.get('show').split(',');
+    return (SCREEN_FOCUS[liveNow.screen] || ALL_EXTRAS).split(',');
+  }
+  const want = (k) => showList().includes(k) && params.get('extras') !== '0' && !(k === 'polls' && params.get('polls') === '0');
+  const wantPhotos = () => showList().includes('photos');
   const POLL_EVERY_MS = Math.max(20, Number(params.get('every') || params.get('pollevery')) || 90) * 1000;
   const POLL_MS = Math.max(8, Number(params.get('extrasecs') || params.get('pollsecs')) || 20) * 1000;
   const $ = (id) => document.getElementById(id);
@@ -351,6 +384,7 @@
 
   let messages = [];
   let board = [];
+  let songs = [];
 
   async function refresh(initial) {
     try {
@@ -361,6 +395,7 @@
         polls = data.polls;
         messages = data.messages;
         board = data.board;
+        songs = data.songs || [];
         EVENT = data.event;
       }
       const fresh = photos.filter((p) => !known.has(p.id));
@@ -369,7 +404,7 @@
       if (known.size > fresh.length) upNext.push(...fresh.reverse()); // oldest new photo first
       $('count').textContent = all.length + (all.length === 1 ? ' photo' : ' photos');
       $('count').hidden = !all.length;
-      if (!showing && (all.length || !WANT_PHOTOS)) { showing = true; step(); }
+      if (!showing && (all.length || !wantPhotos())) { showing = true; step(); }
     } catch (err) {
       console.warn('Could not load photos', err);
     }
@@ -539,6 +574,23 @@
     $('poll-foot-text').textContent = 'Scan to play along';
   }
 
+  function tableCounts() {
+    const counts = {};
+    all.forEach((p) => { if (p.tb) counts[p.tb] = (counts[p.tb] || 0) + 1; });
+    return Object.keys(counts).map((t) => [t, counts[t]]).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }
+
+  function drawRanking(eyebrow, title, rows) {
+    const list = el('ol', 'leaders');
+    rows.forEach(([who, score], i) => {
+      const li = el('li');
+      li.style.animationDelay = (i * 0.12) + 's';
+      li.append(el('span', 'rank', ['🥇', '🥈', '🥉'][i] || String(i + 1)), el('span', 'who', who), el('b', '', score));
+      list.appendChild(li);
+    });
+    setExtra(eyebrow, title, list);
+  }
+
   function favorites() {
     return all.filter((p) => p.h > 0).sort((a, b) => b.h - a.h).slice(0, 6);
   }
@@ -571,6 +623,8 @@
     if (want('board') && board.length) q.push({ kind: 'board' });
     if (want('favorites') && favorites().length >= 3) q.push({ kind: 'favorites' });
     if (want('challenges')) challengeGroups().forEach((g) => q.push({ kind: 'challenge', id: g.c.id }));
+    if (want('tables') && tableCounts().length >= 2) q.push({ kind: 'tables' });
+    if (want('songs') && songs.length) q.push({ kind: 'songs' });
     return q;
   }
 
@@ -600,6 +654,12 @@
     else if (item.kind === 'favorites') {
       setExtra('Crowd favorites', 'Most-loved photos', photoGrid(favorites(), (p) => '♥ ' + p.h));
       $('poll-foot-text').textContent = 'Scan and tap ♥ on your favorites';
+    } else if (item.kind === 'tables') {
+      drawRanking('Tables', 'Which table is snapping the most?', tableCounts().map(([t, n]) => ['Table ' + t, n + (n === 1 ? ' photo' : ' photos')]));
+      $('poll-foot-text').textContent = 'Scan and add your table number';
+    } else if (item.kind === 'songs') {
+      drawRanking('Song requests', 'Most requested', songs.slice(0, 8).map((x) => [x.title + (x.artist ? ' · ' + x.artist : ''), x.votes + ' ♥']));
+      $('poll-foot-text').textContent = 'Scan to request a song';
     } else if (item.kind === 'challenge') {
       const g = challengeGroups().find((x) => x.c.id === item.id);
       setExtra('Photo challenge', g.c.text, photoGrid(g.photos.slice(0, 6)));
@@ -610,14 +670,85 @@
     scene.classList.add('on');
     await new Promise((r) => setTimeout(r, POLL_MS));
     clearInterval(live);
-    if (!WANT_PHOTOS && extraQueue().length > 1) return true; // straight on to the next one
+    if (!wantPhotos() && extraQueue().length > 1) return true; // straight on to the next one
     scene.classList.remove('on');
     setTimeout(() => { if (!scene.classList.contains('on')) scene.hidden = true; }, 1000);
     return true;
   }
 
+  // ---- Live: announcements, countdown, spotlight, raffle (from the run-of-show page) ----
+  const seenSpecial = new Set();
+  const specials = []; // spotlight / raffle waiting for their turn
+  let cdTimer = null;
+
+  function applyLive(next) {
+    const before = liveNow.screen;
+    liveNow = next || {};
+    const a = liveNow.announce;
+    $('ann').hidden = !a;
+    if (a && $('ann').textContent !== a.text) { $('ann').textContent = a.text; $('ann').style.animation = 'none'; void $('ann').offsetWidth; $('ann').style.animation = ''; }
+    const c = liveNow.countdown;
+    clearInterval(cdTimer);
+    $('cd').hidden = !c;
+    if (c) {
+      $('cd').querySelector('small').textContent = c.label;
+      const tick = () => {
+        const left = Math.max(0, Math.round((c.at - Date.now()) / 1000));
+        const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), sec = left % 60;
+        $('cd').querySelector('b').textContent = left ? (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0') : 'Now!';
+      };
+      tick();
+      cdTimer = setInterval(tick, 1000);
+    }
+    [liveNow.spotlight, liveNow.raffle].forEach((x, i) => {
+      if (x && !seenSpecial.has(x.id)) {
+        seenSpecial.add(x.id);
+        specials.push(Object.assign({ kind: i === 0 ? 'spotlight' : 'raffle' }, x));
+      }
+    });
+    if (before !== liveNow.screen) { pollTurn = 0; nextPollAt = 0; }
+  }
+
+  async function pollLive() {
+    try { applyLive(await Camera.getLive()); } catch (e) {}
+  }
+
+  async function playSpecial(x) {
+    if (x.kind === 'spotlight') {
+      const photo = all.find((p) => p.id === x.photo) || { id: x.photo, name: x.name };
+      const url = await loadPhoto(photo, 1920);
+      if (!url) return;
+      const spot = $('spot');
+      spot.style.backgroundImage = 'url("' + url + '")';
+      spot.querySelector('img').src = url;
+      spot.querySelector('p').textContent = '📸 ' + (x.name || 'A guest');
+      spot.hidden = false;
+      void spot.offsetWidth;
+      spot.classList.add('on');
+      await new Promise((r) => setTimeout(r, 12000));
+      spot.classList.remove('on');
+      await new Promise((r) => setTimeout(r, 900));
+      spot.hidden = true;
+      return;
+    }
+    // Raffle winner
+    const scene = $('poll-scene');
+    const wrap = el('div');
+    wrap.append(el('div', 'winner-name', '🎉 ' + x.name + ' 🎉'), el('div', 'winner-sub', 'drawn from ' + x.entries + (x.entries === 1 ? ' entry' : ' entries')));
+    setExtra('Raffle', 'And the winner is…', wrap);
+    $('poll-foot-text').textContent = 'Congratulations!';
+    scene.hidden = false;
+    $('empty').hidden = true;
+    void scene.offsetWidth;
+    scene.classList.add('on');
+    await new Promise((r) => setTimeout(r, 20000));
+    scene.classList.remove('on');
+    setTimeout(() => { if (!scene.classList.contains('on')) scene.hidden = true; }, 1000);
+  }
+
   function step() {
-    if (!WANT_PHOTOS) {
+    if (specials.length) return playSpecial(specials.shift()).finally(step);
+    if (!wantPhotos()) {
       // An extras-only screen: one after another, or the QR card while there's nothing yet.
       return pollSegment().then((shown) => {
         $('empty').hidden = shown;
@@ -941,12 +1072,15 @@
 
   async function init() {
     try {
-      const { event, photos, polls: firstPolls, messages: notes, board: top } = await Camera.loadEvent({ screen: true });
+      const { event, photos, polls: firstPolls, messages: notes, board: top, live: firstLive, songs: firstSongs } = await Camera.loadEvent({ screen: true });
+      songs = firstSongs || [];
       polls = firstPolls || [];
       messages = notes || [];
       board = top || [];
       EVENT = event;
-      if (!WANT_PHOTOS) nextPollAt = 0;
+      applyLive(firstLive);
+      setInterval(pollLive, 5000);
+      if (!wantPhotos()) nextPollAt = 0;
       document.title = event.title + ' · Live Slideshow';
       Camera.applyCopy(event);
       Camera.applyBranding(event, { background: 'slide' });

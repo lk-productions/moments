@@ -8,8 +8,8 @@
   <title>Photo Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="config.js?v=20261020d"></script>
-  <script src="shared.js?v=20261020d"></script>
+  <script src="config.js?v=20261021a"></script>
+  <script src="shared.js?v=20261021a"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -128,6 +128,7 @@
           <a class="pill" id="open-slideshow" target="_blank" rel="noopener">Open slideshow</a>
           <a class="pill" id="open-camera" target="_blank" rel="noopener">Camera</a>
           <a class="pill" id="open-album" target="_blank" rel="noopener">Client album</a>
+          <a class="pill" id="open-control" target="_blank" rel="noopener">Run of show</a>
         </div>
       </div>
       <nav class="tabs" id="tabs"></nav>
@@ -194,9 +195,13 @@
         document.title = event.title + ' · Dashboard';
         $('open-slideshow').href = Camera.pageUrl('slideshow.html');
         $('open-camera').href = Camera.pageUrl('./');
+        // The client album gets the client key (look and pick favorites only), never this one.
         const album = new URL(Camera.pageUrl('album.html'));
-        album.searchParams.set('key', key);
+        if (data.clientKey) album.searchParams.set('key', data.clientKey);
         $('open-album').href = album.href;
+        const control = new URL(Camera.pageUrl('control.html'));
+        control.searchParams.set('key', key);
+        $('open-control').href = control.href;
         $('login').hidden = true;
         $('app').hidden = false;
       }

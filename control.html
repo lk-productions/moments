@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f1ea">
+  <meta name="robots" content="noindex">
+  <title>Run of show · LK Moments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="config.js?v=20261021a"></script>
+  <script src="shared.js?v=20261021a"></script>
+  <style>
+    :root {
+      --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
+      --accent: #a8784f; --accent-ink: #fff; --line: #e6ddd2; --ok: #2f7d4f; --no: #b04a3c;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.4;
+      font-family: Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased;
+    }
+    main { max-width: 640px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px 60px; display: flex; flex-direction: column; gap: 14px; }
+    header { display: flex; align-items: center; gap: 12px; }
+    header h1 { flex: 1; margin: 0; font-size: 22px; }
+    header p { margin: 2px 0 0; color: var(--muted); font-size: 13px; font-weight: 400; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .card h2 { margin: 0; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row > input, .row > select, .row > textarea { flex: 1; min-width: 0; }
+    input, select, textarea {
+      font: inherit; font-size: 16px; color: var(--ink); padding: 10px 12px; border-radius: 10px;
+      border: 1px solid var(--line); background: var(--bg);
+    }
+    textarea { resize: vertical; min-height: 60px; width: 100%; }
+    .btn {
+      font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; white-space: nowrap;
+      padding: 10px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .btn.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .btn.small { padding: 6px 10px; font-size: 13px; }
+    .btn[disabled] { opacity: .45; pointer-events: none; }
+    .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+    .note { color: var(--muted); font-size: 13px; }
+    .now { background: var(--accent); color: var(--accent-ink); border-radius: 10px; padding: 10px 12px; font-weight: 600; }
+    .item { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+    .item:first-of-type { border-top: 0; }
+    .item div { flex: 1; min-width: 0; }
+    .item b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item small { color: var(--muted); }
+    .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+    .thumbs button { padding: 0; border: 2px solid transparent; border-radius: 8px; overflow: hidden; aspect-ratio: 1; background: #ddd; cursor: pointer; }
+    .thumbs button.on { border-color: var(--accent); }
+    .thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .winner { font-size: 30px; font-weight: 700; text-align: center; padding: 10px; }
+    .switch { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #aaa; }
+    .dot.on { background: var(--ok); }
+    .toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 9; max-width: 90vw; text-align: center; }
+    .login { max-width: 360px; margin: 18vh auto 0; display: flex; flex-direction: column; gap: 10px; text-align: center; padding: 0 16px; }
+    .err { color: var(--no); min-height: 20px; }
+  </style>
+</head>
+<body>
+<div class="login" id="login" hidden>
+  <h1>Run of show</h1>
+  <p class="note">Enter the event's admin key (it's in the Dashboard link).</p>
+  <input id="key-input" placeholder="Admin key" autocomplete="off">
+  <button class="btn primary" id="key-go">Open</button>
+  <p class="err" id="login-err"></p>
+</div>
+
+<main id="app" hidden>
+  <header>
+    <div style="flex:1">
+      <h1 id="title">Run of show</h1>
+      <p id="sub"></p>
+    </div>
+    <button class="btn" id="open-toggle"><span class="dot" id="open-dot"></span> <span id="open-label">Camera</span></button>
+  </header>
+
+  <section class="card">
+    <h2>Announcement</h2>
+    <div class="now" id="ann-now" hidden></div>
+    <textarea id="ann-text" maxlength="140" placeholder="Dinner is served! · Last call for photos · Cake cutting in 5 minutes"></textarea>
+    <div class="row">
+      <select id="ann-min">
+        <option value="5">for 5 minutes</option><option value="10" selected>for 10 minutes</option>
+        <option value="20">for 20 minutes</option><option value="60">for an hour</option>
+      </select>
+      <button class="btn primary" id="ann-go">Show it</button>
+      <button class="btn" id="ann-clear">Clear</button>
+    </div>
+    <p class="note">Shows on the screens right away and at the top of guests' phones within a minute.</p>
+  </section>
+
+  <section class="card">
+    <h2>Countdown</h2>
+    <div class="now" id="cd-now" hidden></div>
+    <div class="row">
+      <input id="cd-label" maxlength="60" placeholder="First dance">
+      <input id="cd-time" type="time">
+    </div>
+    <div class="row">
+      <button class="btn primary" id="cd-go">Start countdown</button>
+      <button class="btn" id="cd-clear">Clear</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Screens show</h2>
+    <div class="seg" id="screen-seg"></div>
+    <p class="note">“Everything” takes turns with photos and extras. Pick one to keep the screens on it.</p>
+  </section>
+
+  <section class="card" id="polls-card" hidden>
+    <h2>Polls</h2>
+    <div id="polls"></div>
+  </section>
+
+  <section class="card">
+    <h2>Spotlight a photo</h2>
+    <p class="note">Tap a photo to put it full screen next, with the guest's name.</p>
+    <div class="thumbs" id="thumbs"></div>
+  </section>
+
+  <section class="card">
+    <h2>Raffle</h2>
+    <div class="row">
+      <select id="raffle-from">
+        <option value="all">Everyone who added their name</option>
+        <option value="photos">Guests who took photos</option>
+        <option value="guestbook">Guests who signed the guestbook</option>
+        <option value="quiz">Guests who played the quiz</option>
+      </select>
+      <button class="btn primary" id="raffle-go">Draw a winner</button>
+    </div>
+    <div class="winner" id="raffle-winner" hidden></div>
+    <p class="note">Only guests who typed a name can win. The winner shows on the screens.</p>
+  </section>
+
+  <section class="card" id="songs-card" hidden>
+    <h2>Song requests (DJ)</h2>
+    <div id="songs"></div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const KEY_STORE = 'wedcam-admin:' + Camera.eventId;
+  let key = params.get('key') || (() => { try { return localStorage.getItem(KEY_STORE) || ''; } catch (e) { return ''; } })();
+  let event = null, photos = [], polls = [], songs = [], live = {};
+  const SCREENS = [['auto', 'Everything'], ['photos', 'Photos'], ['polls', 'Polls'], ['messages', 'Guestbook'],
+    ['board', 'Leaderboard'], ['favorites', 'Favorites'], ['challenges', 'Challenges'], ['tables', 'Tables'], ['songs', 'Songs']];
+
+  function toast(msg) {
+    $('toast').textContent = msg;
+    $('toast').hidden = false;
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => { $('toast').hidden = true; }, 3000);
+  }
+
+  async function act(op, args, okMsg) {
+    try {
+      const r = await Camera.control(key, op, args);
+      if (r.live) live = r.live;
+      if (r.polls) polls = r.polls;
+      render();
+      if (okMsg) toast(okMsg);
+      return r;
+    } catch (err) {
+      toast(err.final ? err.message : "Couldn't reach the server. Try again.");
+      return null;
+    }
+  }
+
+  async function load(first) {
+    try {
+      const [admin, pub] = await Promise.all([Camera.adminPhotos(key), Camera.loadEvent()]);
+      if (admin.role && admin.role !== 'admin') throw Object.assign(new Error('bad-key'), { code: 'bad-key' });
+      event = admin.event;
+      photos = (admin.photos || []).filter((p) => (event.approveFirst ? p.s === 'approved' : p.s !== 'hidden'));
+      songs = admin.songs || [];
+      live = admin.live || pub.live || {};
+      polls = pub.polls || [];
+      if (first) {
+        try { localStorage.setItem(KEY_STORE, key); } catch (e) {}
+        Camera.applyTheme(event.theme, event.accent);
+        document.title = event.title + ' · Run of show';
+        $('login').hidden = true;
+        $('app').hidden = false;
+      }
+      render();
+    } catch (err) {
+      if (first) {
+        $('app').hidden = true;
+        $('login').hidden = false;
+        $('login-err').textContent = err.code === 'bad-key' ? (key ? "That key didn't work for this event." : '') : "Can't connect. Try again.";
+      }
+    }
+  }
+
+  function render() {
+    const f = event.features || {};
+    $('title').textContent = event.title;
+    $('sub').textContent = photos.length + ' photos · ' + (event.open ? 'camera open' : 'camera closed');
+    $('open-dot').classList.toggle('on', event.open);
+    $('open-label').textContent = event.open ? 'Open' : 'Closed';
+
+    const a = live.announce;
+    $('ann-now').hidden = !a;
+    if (a) $('ann-now').textContent = 'On now: ' + a.text;
+    const c = live.countdown;
+    $('cd-now').hidden = !c;
+    if (c) $('cd-now').textContent = 'Counting down to ' + c.label + ' at ' + new Date(c.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+    const seg = $('screen-seg');
+    seg.innerHTML = '';
+    SCREENS.forEach(([id, label]) => {
+      const b = document.createElement('button');
+      b.className = 'btn small' + ((live.screen || 'auto') === id ? ' on' : '');
+      b.textContent = label;
+      b.onclick = () => act('screen', { mode: id }, 'Screens: ' + label);
+      seg.appendChild(b);
+    });
+
+    $('polls-card').hidden = !polls.length;
+    const pl = $('polls');
+    pl.innerHTML = '';
+    polls.forEach((p) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      const info = document.createElement('div');
+      const b = document.createElement('b');
+      b.textContent = p.question;
+      const small = document.createElement('small');
+      small.textContent = (p.type === 'words' ? 'Word cloud' : p.quiz ? 'Quiz' : 'Poll') + ' · ' + p.total + (p.type === 'words' ? ' answers' : ' votes') +
+        ' · ' + (p.reveal ? 'answer revealed' : p.open ? 'open' : 'closed') + (p.show ? '' : ' · off screen');
+      info.append(b, small);
+      row.appendChild(info);
+      const btn = (label, d, primary) => {
+        const x = document.createElement('button');
+        x.className = 'btn small' + (primary ? ' primary' : '');
+        x.textContent = label;
+        x.onclick = () => act('poll', { poll: p.id, do: d }, label + ': ' + p.question);
+        row.appendChild(x);
+      };
+      if (!p.open) btn('Open', 'open', true); else btn('Close', 'close');
+      if (p.quiz && !p.reveal) btn('Reveal', 'reveal');
+      btn(p.show ? 'Hide' : 'Show', p.show ? 'hide' : 'show');
+      pl.appendChild(row);
+    });
+
+    const th = $('thumbs');
+    if (th.dataset.n !== String(photos.length) || th.dataset.spot !== (live.spotlight ? live.spotlight.photo : '')) {
+      th.dataset.n = photos.length;
+      th.dataset.spot = live.spotlight ? live.spotlight.photo : '';
+      th.innerHTML = '';
+      photos.filter((p) => !p.v).slice(0, 60).forEach((p) => {
+        const b = document.createElement('button');
+        b.className = live.spotlight && live.spotlight.photo === p.id ? 'on' : '';
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.src = Camera.photoUrl(p, 200);
+        img.onerror = () => { if (!img.dataset.fb && !p.src) { img.dataset.fb = 1; img.src = Camera.photoFallbackUrl(p, 200); } };
+        b.appendChild(img);
+        b.onclick = () => act('spotlight', { photo: p.id }, 'On screen next' + (p.name ? ': ' + p.name : ''));
+        th.appendChild(b);
+      });
+    }
+
+    const r = live.raffle;
+    $('raffle-winner').hidden = !r;
+    if (r) $('raffle-winner').textContent = '🎉 ' + r.name;
+
+    $('songs-card').hidden = !f.songs;
+    const sl = $('songs');
+    sl.innerHTML = '';
+    songs.filter((x) => x.s !== 'hidden').forEach((sg) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.style.opacity = sg.s === 'played' ? 0.5 : 1;
+      const info = document.createElement('div');
+      const b = document.createElement('b');
+      b.textContent = sg.title + (sg.artist ? ' · ' + sg.artist : '');
+      const small = document.createElement('small');
+      small.textContent = sg.votes + ' ♥' + (sg.name ? ' · asked by ' + sg.name : '') + (sg.s === 'played' ? ' · played' : '');
+      info.append(b, small);
+      const played = document.createElement('button');
+      played.className = 'btn small' + (sg.s === 'played' ? '' : ' primary');
+      played.textContent = sg.s === 'played' ? 'Undo' : 'Played';
+      played.onclick = () => markSong(sg, sg.s === 'played' ? 'new' : 'played');
+      const hide = document.createElement('button');
+      hide.className = 'btn small';
+      hide.textContent = 'Hide';
+      hide.onclick = () => markSong(sg, 'hidden');
+      row.append(info, played, hide);
+      sl.appendChild(row);
+    });
+    if (!songs.length) sl.innerHTML = '<p class="note">No requests yet.</p>';
+  }
+
+  async function markSong(sg, status) {
+    sg.s = status;
+    render();
+    try { songs = await Camera.markSongs(key, [sg.id], status); render(); }
+    catch (err) { toast("Couldn't save. Try again."); }
+  }
+
+  $('ann-go').onclick = () => {
+    const text = $('ann-text').value.trim();
+    if (!text) return;
+    act('announce', { text, minutes: Number($('ann-min').value) }, 'Announcement is up').then((r) => { if (r) $('ann-text').value = ''; });
+  };
+  $('ann-clear').onclick = () => act('announce', { text: '' }, 'Announcement cleared');
+  $('cd-go').onclick = () => {
+    const label = $('cd-label').value.trim();
+    const [hh, mm] = ($('cd-time').value || '').split(':').map(Number);
+    if (!label || isNaN(hh)) return toast('Add a name and a time.');
+    const at = new Date();
+    at.setHours(hh, mm, 0, 0);
+    if (at < new Date()) at.setDate(at.getDate() + 1); // a time that's passed means tomorrow
+    act('countdown', { label, at: at.getTime() }, 'Countdown started');
+  };
+  $('cd-clear').onclick = () => act('countdown', { label: '' }, 'Countdown cleared');
+  $('raffle-go').onclick = async () => {
+    $('raffle-go').disabled = true;
+    const r = await act('raffle', { from: $('raffle-from').value });
+    if (r && r.winner) toast(r.winner + ' wins! (' + r.entries + ' entries)');
+    $('raffle-go').disabled = false;
+  };
+  $('open-toggle').onclick = async () => {
+    const want = !event.open;
+    const r = await act('open', { open: want }, want ? 'Camera open' : 'Camera closed');
+    if (r) { event.open = want; render(); }
+  };
+
+  $('key-go').onclick = () => { key = $('key-input').value.trim(); load(true); };
+  if (!Camera.eventId) {
+    $('login').hidden = false;
+    $('login-err').textContent = 'This link is missing the event (?e=…).';
+  } else {
+    load(true);
+    setInterval(() => { if (event && !document.hidden) load(false); }, 10000);
+  }
+</script>
+</body>
+</html>

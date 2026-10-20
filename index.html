@@ -7,8 +7,8 @@
   <title>LK Moments</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="config.js?v=20261020d"></script>
-  <script src="shared.js?v=20261020d"></script>
+  <script src="config.js?v=20261021a"></script>
+  <script src="shared.js?v=20261021a"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -219,6 +219,36 @@
     .board .me { text-align: center; font-weight: 600; margin-bottom: 8px; }
     video.preview { max-height: 50vh; background: #000; }
 
+    /* Live banner, booth, songs, voice notes, language */
+    .live-banner {
+      position: sticky; top: 0; z-index: 10; margin: -8px -4px 0; padding: 10px 14px; border-radius: 12px;
+      background: var(--accent); color: var(--accent-ink); display: flex; flex-direction: column; gap: 2px; text-align: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,.15);
+    }
+    .live-banner b { font-size: 16px; }
+    .live-banner span { font-size: 14px; opacity: .9; font-variant-numeric: tabular-nums; }
+    .mini-row { display: flex; gap: 10px; }
+    .mini-row .btn { flex: 1; }
+    .booth-view { position: relative; width: 100%; aspect-ratio: 3 / 4; background: #111; border-radius: 12px; overflow: hidden; }
+    .booth-view video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(var(--mirror, -1)); }
+    .booth-count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 120px; font-weight: 700; color: #fff; text-shadow: 0 4px 24px rgba(0,0,0,.5); pointer-events: none; }
+    .booth-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity .35s ease; }
+    .booth-flash.on { opacity: 1; transition: none; }
+    .booth-thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .booth-thumbs img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 6px; background: var(--line); }
+    .song-form { display: flex; flex-direction: column; gap: 10px; }
+    .songs { display: flex; flex-direction: column; gap: 8px; }
+    .song { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    .song div { flex: 1; min-width: 0; }
+    .song b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .song small { color: var(--muted); }
+    .song button { font: inherit; font-weight: 600; font-size: 14px; border-radius: 999px; padding: 8px 12px; cursor: pointer; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); white-space: nowrap; }
+    .song button.on { background: var(--accent); color: var(--accent-ink); }
+    .voice-row { display: flex; gap: 10px; align-items: center; }
+    .voice-row audio { flex: 1; min-width: 0; height: 40px; }
+    .mini-btn.recording { border-color: var(--danger); color: var(--danger); }
+    .lang-toggle { align-self: center; background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; padding: 6px; }
+
     /* Branding */
     .logo { display: block; margin: 4px auto 0; max-width: 72%; max-height: 84px; object-fit: contain; }
     .logo.small { max-height: 44px; margin-top: 0; }
@@ -235,6 +265,7 @@
 </head>
 <body>
 <main>
+  <div class="live-banner" id="live-banner" hidden><b id="live-text"></b><span id="live-count"></span></div>
   <!-- Welcome -->
   <section id="screen-welcome" hidden>
     <img class="logo" data-logo alt="" hidden>
@@ -255,13 +286,22 @@
       <b class="poll-q">Leave a note</b>
       <span class="poll-go">Write</span>
     </button>
+    <button class="poll-card" data-songs-slot hidden>
+      <span class="poll-tag">Song requests</span>
+      <b class="poll-q">Request a song for the DJ</b>
+      <span class="poll-go">Request</span>
+    </button>
     <div class="card">
       <label class="field"><span data-copy="nameLabel"></span>
         <input type="text" id="guest-name" autocomplete="name" maxlength="40" placeholder="Optional">
       </label>
+      <label class="field" id="table-field" hidden style="margin-top:12px"><span>Table number</span>
+        <input type="text" id="guest-table" inputmode="numeric" maxlength="6" placeholder="e.g. 7">
+      </label>
     </div>
     <div class="spacer"></div>
     <button class="btn" id="start" data-copy="startButton">Open the camera</button>
+    <button class="lang-toggle" id="lang-toggle" hidden>Español</button>
   </section>
 
   <!-- Camera -->
@@ -269,6 +309,10 @@
     <img class="logo small" data-logo alt="" hidden>
     <p class="eyebrow" data-title></p>
     <div class="film" aria-hidden="true"></div>
+    <div id="roll-box" hidden>
+      <p class="chips-label">Roll</p>
+      <div class="chips" id="roll-chips"></div>
+    </div>
     <div id="challenge-box" hidden>
       <p class="chips-label">Photo challenge · optional</p>
       <div class="chips" id="challenge-chips"></div>
@@ -284,6 +328,7 @@
       <p class="count" id="left-count"></p>
       <p class="count-label" id="left-label"></p>
     </div>
+    <button class="mini-btn" id="booth-btn" hidden>📸 Photo booth · 4 in a row</button>
     <label class="mini-btn" id="clip-btn" for="clip-input" hidden>🎬 Record a <span id="clip-secs">10</span>-second clip</label>
     <input type="file" id="clip-input" class="visually-hidden" accept="video/*" capture="environment">
     <div class="spacer"></div>
@@ -331,6 +376,11 @@
       <b class="poll-q">Leave a note</b>
       <span class="poll-go">Write</span>
     </button>
+    <button class="poll-card" data-songs-slot hidden>
+      <span class="poll-tag">Song requests</span>
+      <b class="poll-q">Request a song for the DJ</b>
+      <span class="poll-go">Request</span>
+    </button>
     <div class="cta" hidden>
       <p class="cta-text"></p>
       <a class="btn cta-btn" target="_blank" rel="noopener"></a>
@@ -342,7 +392,7 @@
   <!-- Live poll -->
   <section id="screen-poll" hidden>
     <p class="eyebrow">Live poll</p>
-    <h2 id="poll-question"></h2>
+    <h2 id="poll-question" data-no-translate></h2>
     <p class="poll-verdict" id="poll-verdict" hidden></p>
     <div class="poll-options" id="poll-body"></div>
     <p class="poll-total" id="poll-total"></p>
@@ -353,6 +403,39 @@
     <button class="btn secondary" id="poll-back">Back</button>
   </section>
 
+  <!-- Photo booth -->
+  <section id="screen-booth" hidden>
+    <p class="eyebrow">Photo booth</p>
+    <div class="booth-view">
+      <video id="booth-video" playsinline muted autoplay></video>
+      <div class="booth-count" id="booth-count"></div>
+      <div class="booth-flash" id="booth-flash"></div>
+    </div>
+    <div class="booth-thumbs" id="booth-thumbs"></div>
+    <p class="status" id="booth-status" role="status"></p>
+    <div class="spacer"></div>
+    <button class="btn" id="booth-go">Start · 4 photos</button>
+    <div class="mini-row">
+      <button class="btn secondary" id="booth-flip">Flip camera</button>
+      <button class="btn secondary" id="booth-back">Back</button>
+    </div>
+  </section>
+
+  <!-- Song requests -->
+  <section id="screen-songs" hidden>
+    <p class="eyebrow">Song requests</p>
+    <h2>What should the DJ play?</h2>
+    <div class="card song-form">
+      <input type="text" id="song-title" maxlength="80" placeholder="Song" autocomplete="off">
+      <input type="text" id="song-artist" maxlength="60" placeholder="Artist (optional)" autocomplete="off">
+    </div>
+    <p class="status" id="song-status" role="status"></p>
+    <button class="btn" id="song-send">Request it</button>
+    <div class="songs" id="song-list" data-no-translate></div>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="song-back">Back</button>
+  </section>
+
   <!-- Guestbook -->
   <section id="screen-guestbook" hidden>
     <p class="eyebrow">Guestbook</p>
@@ -361,9 +444,13 @@
       <textarea id="gb-text" maxlength="280" rows="4" placeholder="Write a note…"></textarea>
       <p class="gb-count" id="gb-count">0 / 280</p>
     </div>
+    <div class="voice-row" id="gb-voice-row" hidden>
+      <button class="mini-btn" id="gb-voice">🎤 Record a voice note</button>
+      <audio id="gb-audio" controls hidden></audio>
+    </div>
     <p class="status" id="gb-status" role="status"></p>
     <button class="btn" id="gb-send">Sign the guestbook</button>
-    <div class="messages" id="gb-list"></div>
+    <div class="messages" id="gb-list" data-no-translate></div>
     <div class="spacer"></div>
     <button class="btn secondary" id="gb-back">Back</button>
   </section>
@@ -385,10 +472,16 @@
       <b class="poll-q">Leave a note</b>
       <span class="poll-go">Write</span>
     </button>
+    <button class="poll-card" data-songs-slot hidden>
+      <span class="poll-tag">Song requests</span>
+      <b class="poll-q">Request a song for the DJ</b>
+      <span class="poll-go">Request</span>
+    </button>
     <div class="cta" data-closed hidden>
       <p class="cta-text"></p>
       <a class="btn cta-btn" target="_blank" rel="noopener"></a>
     </div>
+    <a class="btn secondary" id="message-album" href="album.html" hidden>See the album</a>
     <button class="btn secondary" id="message-retry" hidden onclick="location.reload()">Try again</button>
   </section>
 </main>
@@ -400,7 +493,7 @@
   const JPEG_QUALITY = 0.88;
   const STORE_KEY = 'wedcam-v1:' + Camera.eventId;
   const $ = (id) => document.getElementById(id);
-  const screens = ['welcome', 'camera', 'review', 'done', 'message', 'poll', 'guestbook'];
+  const screens = ['welcome', 'camera', 'review', 'done', 'message', 'poll', 'guestbook', 'booth', 'songs'];
 
   let state = load();
   let pendingFile = null;
@@ -483,6 +576,23 @@
     });
     $('album-link').hidden = !(f.album && !f.developing);
     $('album-link').href = Camera.pageUrl('album.html');
+    $('table-field').hidden = !f.tables;
+    $('guest-table').value = state.table || '';
+    const rolls = f.rolls || [];
+    $('roll-box').hidden = rolls.length < 2;
+    if (rolls.length && !rolls.some((r) => r.id === state.roll)) state.roll = rolls[0].id;
+    const rc = $('roll-chips');
+    rc.innerHTML = '';
+    rolls.forEach((r) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (state.roll === r.id ? ' on' : '');
+      b.textContent = r.text;
+      b.onclick = () => { state.roll = r.id; save(); renderFeatures(); };
+      rc.appendChild(b);
+    });
+    $('booth-btn').hidden = !(f.booth && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    $('gb-voice-row').hidden = !(f.voice && window.MediaRecorder);
+    document.querySelectorAll('[data-songs-slot]').forEach((b) => { b.hidden = !f.songs; });
   }
 
   // The event's "after your last photo" message and button, if it has a link.
@@ -506,6 +616,9 @@
     $('message-title').textContent = title;
     $('message-text').textContent = text;
     $('message-retry').hidden = !retry;
+    const f = features();
+    $('message-album').hidden = retry || !CONFIG || !(f.album && !f.developing);
+    $('message-album').href = Camera.pageUrl('album.html');
     // Only the "camera is closed" message gets the button, not errors.
     document.querySelectorAll('.cta[data-closed]').forEach((box) => { box.hidden = !ctaReady || retry || !CONFIG; });
     show('message');
@@ -514,7 +627,9 @@
   function route() {
     render();
     if (!CONFIG.open && state.used < CONFIG.shots) {
-      showMessage('This camera is closed', Camera.copyFor(CONFIG).closed);
+      // After the event: a thank-you (custom wording if set), the album and the event's link.
+      const words = Camera.copyFor(CONFIG);
+      showMessage(words.thanksTitle || 'This camera is closed', words.thanksText || words.closed);
     }
     else if (CONFIG.full && state.used < CONFIG.shots && !pendingFile) {
       showMessage('The album is full', "It's holding all the photos it can. Thanks for being part of it!");
@@ -527,6 +642,7 @@
   $('guest-name').value = state.name || '';
   $('start').addEventListener('click', () => {
     state.name = $('guest-name').value.trim();
+    state.table = $('guest-table').value.trim();
     state.started = true;
     save();
     route();
@@ -537,6 +653,7 @@
     e.target.value = '';
     if (!file) return;
     pendingClip = null;
+    pendingBooth = false;
     $('preview-video').hidden = true;
     $('preview-video').removeAttribute('src');
     $('preview').hidden = false;
@@ -601,7 +718,8 @@
       } else {
         const dataUrl = await compress();
         const challenge = state.challenge || '';
-        await sendWithRetry(() => Camera.uploadPhoto(dataUrl, state.name, state.used + 1, challenge));
+        const extra = { roll: state.roll || '', table: state.table || '' };
+        await sendWithRetry(() => Camera.uploadPhoto(dataUrl, state.name, state.used + 1, challenge, extra));
         state.used += 1;
         if (challenge && !state.challengesDone.includes(challenge)) state.challengesDone.push(challenge);
         state.challenge = '';
@@ -665,6 +783,7 @@
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     applyLook(ctx, canvas.width, canvas.height, chosenLook());
     if (features().stamp) drawStamp(ctx, canvas.width, canvas.height);
+    await drawFrame(ctx, canvas.width, canvas.height);
     return canvas;
   }
 
@@ -675,7 +794,7 @@
   let previewToken = 0;
   async function updatePreview() {
     const f = features();
-    if (!pendingFile || ((!f.look || f.look === 'none' || chosenLook() === 'none') && !f.stamp)) {
+    if (!pendingFile || ((!f.look || f.look === 'none' || chosenLook() === 'none') && !f.stamp && (!f.frame || f.frame === 'none'))) {
       if (pendingUrl) $('preview').src = pendingUrl;
       return;
     }
@@ -1085,19 +1204,22 @@
   $('gb-text').addEventListener('input', () => { $('gb-count').textContent = $('gb-text').value.length + ' / 280'; });
   $('gb-send').addEventListener('click', async () => {
     const text = $('gb-text').value.trim();
-    if (!text) return;
+    if (!text && !pendingAudio) return;
     $('gb-send').disabled = true;
     $('gb-status').classList.remove('error');
     $('gb-status').textContent = 'Sending…';
     try {
       let sent;
       for (let attempt = 0; ; attempt++) {
-        try { sent = await Camera.sendMessage(state.name, text); break; } catch (err) {
+        try { sent = await Camera.sendMessage(state.name, text, '', pendingAudio || undefined); break; } catch (err) {
           if (err.final || attempt >= 2) throw err;
           await wait((attempt + 1) * 2000 * (0.75 + Math.random() * 0.5));
         }
       }
       messages.unshift(sent);
+      pendingAudio = null;
+      $('gb-audio').hidden = true;
+      $('gb-voice').textContent = t('🎤 Record a voice note');
       $('gb-text').value = '';
       $('gb-count').textContent = '0 / 280';
       state.signed = true;
@@ -1122,6 +1244,337 @@
     messages = mine.concat(fresh);
   }
 
+  // ---- Frames: a band with the title and date, or the event's own overlay ----
+  let frameImage = null;
+  function loadFrame() {
+    if (frameImage || !CONFIG.frame) return Promise.resolve(frameImage);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // keeps the canvas exportable
+      img.onload = () => { frameImage = img; resolve(img); };
+      img.onerror = () => resolve(null);
+      img.src = Camera.assetUrl(CONFIG.frame, 2400);
+    });
+  }
+
+  let pendingBooth = false;
+  async function drawFrame(ctx, w, h) {
+    if (pendingBooth) return; // the booth sheet has its own caption
+    const mode = features().frame;
+    if (mode === 'custom') {
+      const img = await loadFrame();
+      if (img) ctx.drawImage(img, 0, 0, w, h);
+      return;
+    }
+    if (mode !== 'band') return;
+    const css = getComputedStyle(document.documentElement);
+    const band = Math.round(h * 0.09);
+    ctx.save();
+    ctx.fillStyle = css.getPropertyValue('--accent').trim() || '#a8784f';
+    ctx.fillRect(0, h - band, w, band);
+    ctx.fillStyle = css.getPropertyValue('--accent-ink').trim() || '#fff';
+    ctx.textBaseline = 'middle';
+    const font = getComputedStyle(document.querySelector('h1')).fontFamily;
+    ctx.font = '600 ' + Math.round(band * 0.42) + 'px ' + font;
+    ctx.textAlign = 'left';
+    ctx.fillText(CONFIG.title, band * 0.45, h - band / 2, w * 0.62);
+    ctx.font = '500 ' + Math.round(band * 0.3) + 'px ' + font;
+    ctx.textAlign = 'right';
+    ctx.fillText(CONFIG.date || '', w - band * 0.45, h - band / 2, w * 0.32);
+    ctx.restore();
+  }
+
+  // ---- Photo booth: 3-2-1, four shots, one strip ----
+  let boothStream = null;
+  let boothFacing = 'user';
+  async function openBooth() {
+    $('booth-thumbs').innerHTML = '';
+    $('booth-status').textContent = '';
+    $('booth-go').disabled = false;
+    show('booth');
+    await startBoothCamera();
+  }
+  async function startBoothCamera() {
+    stopBooth();
+    try {
+      boothStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: boothFacing, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      $('booth-video').srcObject = boothStream;
+      $('booth-video').style.setProperty('--mirror', boothFacing === 'user' ? -1 : 1);
+    } catch (err) {
+      $('booth-status').textContent = t('Allow camera access to use the photo booth.');
+      $('booth-go').disabled = true;
+    }
+  }
+  function stopBooth() {
+    if (boothStream) boothStream.getTracks().forEach((tr) => tr.stop());
+    boothStream = null;
+  }
+  async function runBooth() {
+    const video = $('booth-video');
+    if (!video.videoWidth) return;
+    $('booth-go').disabled = true;
+    $('booth-thumbs').innerHTML = '';
+    const shots = [];
+    for (let i = 0; i < 4; i++) {
+      for (let n = 3; n > 0; n--) { $('booth-count').textContent = n; await wait(700); }
+      $('booth-count').textContent = '';
+      const c = document.createElement('canvas');
+      c.width = video.videoWidth; c.height = video.videoHeight;
+      // The live view is mirrored like a mirror; the saved shot isn't, like the phone's own camera.
+      c.getContext('2d').drawImage(video, 0, 0);
+      shots.push(c);
+      $('booth-flash').classList.add('on');
+      setTimeout(() => $('booth-flash').classList.remove('on'), 60);
+      const thumb = document.createElement('img');
+      thumb.src = c.toDataURL('image/jpeg', 0.6);
+      $('booth-thumbs').appendChild(thumb);
+      await wait(500);
+    }
+    // A 2 × 2 sheet with the event's name underneath: fits a TV better than a tall strip.
+    const cell = 900, gap = 24, foot = 150;
+    const sheet = document.createElement('canvas');
+    sheet.width = cell * 2 + gap * 3;
+    sheet.height = Math.round(cell * 0.75) * 2 + gap * 3 + foot;
+    const g = sheet.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, sheet.width, sheet.height);
+    const ch = Math.round(cell * 0.75);
+    shots.forEach((c, i) => {
+      const x = gap + (i % 2) * (cell + gap), y = gap + Math.floor(i / 2) * (ch + gap);
+      const scale = Math.max(cell / c.width, ch / c.height);
+      const sw = cell / scale, sh = ch / scale;
+      g.drawImage(c, (c.width - sw) / 2, (c.height - sh) / 2, sw, sh, x, y, cell, ch);
+    });
+    const css = getComputedStyle(document.documentElement);
+    g.fillStyle = css.getPropertyValue('--ink').trim() || '#222';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = '600 56px ' + getComputedStyle(document.querySelector('h1')).fontFamily;
+    g.fillText(CONFIG.title, sheet.width / 2, sheet.height - foot / 2 - 14, sheet.width - 80);
+    g.font = '500 30px ' + getComputedStyle(document.body).fontFamily;
+    g.fillStyle = css.getPropertyValue('--muted').trim() || '#777';
+    g.fillText(CONFIG.date || '', sheet.width / 2, sheet.height - foot / 2 + 38);
+    stopBooth();
+    const blob = await new Promise((r) => sheet.toBlob(r, 'image/jpeg', 0.92));
+    pendingClip = null;
+    pendingFile = blob;
+    pendingBooth = true;
+    if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    pendingUrl = URL.createObjectURL(blob);
+    $('preview-video').hidden = true;
+    $('preview').hidden = false;
+    $('preview').src = pendingUrl;
+    $('keep').disabled = false;
+    setStatus('');
+    setBusy(false);
+    renderLooks();
+    updatePreview();
+    show('review');
+  }
+  $('booth-btn').addEventListener('click', openBooth);
+  $('booth-go').addEventListener('click', runBooth);
+  $('booth-flip').addEventListener('click', () => { boothFacing = boothFacing === 'user' ? 'environment' : 'user'; startBoothCamera(); });
+  $('booth-back').addEventListener('click', () => { stopBooth(); route(); });
+
+  // ---- Guestbook voice notes (up to 30 seconds) ----
+  let pendingAudio = null;
+  let recorder = null;
+  $('gb-voice').addEventListener('click', async () => {
+    if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const type = ['audio/mp4', 'audio/webm', 'audio/ogg'].find((x) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(x)) || '';
+      recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+      const chunks = [];
+      recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((tr) => tr.stop());
+        clearTimeout(recorder.limit);
+        $('gb-voice').classList.remove('recording');
+        const blob = new Blob(chunks, { type: (recorder.mimeType || type || 'audio/mp4').split(';')[0] });
+        $('gb-audio').src = URL.createObjectURL(blob);
+        $('gb-audio').hidden = false;
+        $('gb-voice').textContent = t('🎤 Record again');
+        const reader = new FileReader();
+        reader.onload = () => { pendingAudio = String(reader.result).replace(/^data:([^;]*);[^,]*,/, (m, mt) => 'data:' + (mt || 'audio/mp4').split(';')[0] + ';base64,'); };
+        reader.readAsDataURL(blob);
+      };
+      recorder.start();
+      recorder.limit = setTimeout(() => recorder.state === 'recording' && recorder.stop(), 30000);
+      $('gb-voice').classList.add('recording');
+      $('gb-voice').textContent = t('⏹ Stop (30 seconds max)');
+    } catch (err) {
+      $('gb-status').textContent = t('Allow the microphone to record a voice note.');
+    }
+  });
+
+  // ---- Song requests ----
+  let songs = [];
+  function songVoteKey(id) { return 'wedcam-song:' + Camera.eventId + ':' + id; }
+  function votedSong(id) { try { return !!localStorage.getItem(songVoteKey(id)); } catch (e) { return false; } }
+  function renderSongs() {
+    const list = $('song-list');
+    list.innerHTML = '';
+    songs.forEach((sg) => {
+      const row = document.createElement('div');
+      row.className = 'song';
+      const info = document.createElement('div');
+      const b = document.createElement('b');
+      b.textContent = sg.title;
+      const small = document.createElement('small');
+      small.textContent = (sg.artist ? sg.artist + ' · ' : '') + sg.votes + ' ♥';
+      info.append(b, small);
+      const up = document.createElement('button');
+      const mine = votedSong(sg.id);
+      up.className = mine ? 'on' : '';
+      up.textContent = mine ? t('Voted') : t('+1');
+      up.disabled = mine;
+      up.onclick = () => {
+        try { localStorage.setItem(songVoteKey(sg.id), '1'); } catch (e) {}
+        sg.votes += 1;
+        renderSongs();
+        Camera.voteSong(sg.id).catch(() => {});
+      };
+      row.append(info, up);
+      list.appendChild(row);
+    });
+  }
+  document.querySelectorAll('[data-songs-slot]').forEach((b) => b.addEventListener('click', () => {
+    $('song-status').textContent = '';
+    renderSongs();
+    show('songs');
+  }));
+  $('song-back').addEventListener('click', () => route());
+  $('song-send').addEventListener('click', async () => {
+    const title = $('song-title').value.trim();
+    if (!title) return;
+    $('song-send').disabled = true;
+    $('song-status').textContent = t('Sending…');
+    try {
+      const sg = await Camera.requestSong(title, $('song-artist').value.trim(), state.name);
+      try { localStorage.setItem(songVoteKey(sg.id), '1'); } catch (e) {}
+      if (!songs.some((x) => x.id === sg.id)) songs.push(sg);
+      $('song-title').value = '';
+      $('song-artist').value = '';
+      $('song-status').textContent = t('Requested! The DJ will see it.');
+      renderSongs();
+    } catch (err) {
+      $('song-status').textContent = err.final ? err.message : t("Couldn't send. Try again.");
+    }
+    $('song-send').disabled = false;
+  });
+
+  // ---- Live: announcements and countdowns from the run-of-show page ----
+  let live = {};
+  let liveTimer = null;
+  function renderLive() {
+    const a = live.announce && (!live.announce.until || live.announce.until > Date.now()) ? live.announce : null;
+    const c = live.countdown && live.countdown.at > Date.now() - 60000 ? live.countdown : null;
+    $('live-banner').hidden = !a && !c;
+    $('live-text').textContent = a ? a.text : (c ? c.label : '');
+    clearInterval(liveTimer);
+    const tick = () => {
+      if (!c) { $('live-count').textContent = ''; return; }
+      const left = Math.max(0, Math.round((c.at - Date.now()) / 1000));
+      const hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
+      const time = (hh ? hh + ':' + String(mm).padStart(2, '0') : mm) + ':' + String(ss).padStart(2, '0');
+      $('live-count').textContent = left ? (a ? c.label + ' · ' : '') + t('in') + ' ' + time : (a ? c.label + ' · ' : '') + t('Now!');
+    };
+    tick();
+    if (c) liveTimer = setInterval(tick, 1000);
+  }
+
+  // ---- Spanish ----
+  // Built-in wording comes from shared.js; this covers the page's own words. Guests' names,
+  // notes, songs and poll questions are never touched.
+  const ES = {
+    'Open the camera': 'Abrir la cámara', 'Optional': 'Opcional', 'Table number': 'Número de mesa', 'e.g. 7': 'ej. 7',
+    'Live poll': 'Encuesta en vivo', 'Vote': 'Votar', 'Quiz': 'Trivia', 'Word cloud': 'Nube de palabras', 'See answer': 'Ver respuesta',
+    'Results': 'Resultados', 'Guestbook': 'Libro de visitas', 'Write': 'Escribir', 'Open': 'Abrir', 'Leave a note': 'Deja una nota',
+    'Read the guestbook': 'Leer el libro de visitas', 'Song requests': 'Pide una canción', 'Request': 'Pedir',
+    'Request a song for the DJ': 'Pídele una canción al DJ', 'What should the DJ play?': '¿Qué debería tocar el DJ?',
+    'Song': 'Canción', 'Artist (optional)': 'Artista (opcional)', 'Request it': 'Pedirla', 'Voted': 'Votado',
+    'Requested! The DJ will see it.': '¡Pedida! El DJ la verá.', 'Roll': 'Rollo', 'Photo challenge · optional': 'Reto de foto · opcional',
+    '📸 Photo booth · 4 in a row': '📸 Cabina de fotos · 4 seguidas', 'Photo booth': 'Cabina de fotos', 'Start · 4 photos': 'Empezar · 4 fotos',
+    'Flip camera': 'Cambiar cámara', 'Back': 'Atrás', 'Tap the shutter to take a photo.': 'Toca el obturador para tomar una foto.',
+    'shots left': 'fotos restantes', 'shot left': 'foto restante', 'Nice shot': '¡Buena foto!', 'Add to the album': 'Agregar al álbum',
+    'Retake': 'Repetir', 'Pick a look': 'Elige un estilo', 'Original': 'Original', 'Film': 'Película', 'B&W': 'B y N', 'Vintage': 'Vintage',
+    'Sending your photo…': 'Enviando tu foto…', 'Sending…': 'Enviando…', 'Busy moment. Still sending…': 'Hay mucho movimiento. Seguimos enviando…',
+    "Couldn't send. Check your signal and try again.": 'No se pudo enviar. Revisa tu señal e inténtalo de nuevo.',
+    "Couldn't send. Try again.": 'No se pudo enviar. Inténtalo de nuevo.', 'Try again': 'Intentar de nuevo',
+    'See the album': 'Ver el álbum', 'Watch the live slideshow': 'Ver la presentación en vivo', 'Sign the guestbook': 'Firmar el libro de visitas',
+    'Write a note…': 'Escribe una nota…', '🎤 Record a voice note': '🎤 Grabar una nota de voz', '🎤 Record again': '🎤 Grabar de nuevo',
+    '⏹ Stop (30 seconds max)': '⏹ Detener (máx. 30 segundos)', 'Thanks! Your note is in the guestbook.': '¡Gracias! Tu nota está en el libro de visitas.',
+    'Next poll': 'Siguiente encuesta', 'Thanks for voting!': '¡Gracias por votar!', 'Sending your vote…': 'Enviando tu voto…',
+    'You got it! 🎉': '¡Correcto! 🎉', 'Leaderboard': 'Clasificación', 'Be the first to answer': 'Sé el primero en responder',
+    'A word or two': 'Una o dos palabras', 'Send': 'Enviar', 'This camera is closed': 'Esta cámara está cerrada',
+    'The album is full': 'El álbum está lleno', 'Camera not found': 'Cámara no encontrada', "Can't connect": 'No se puede conectar',
+    'Check your signal and try again.': 'Revisa tu señal e inténtalo de nuevo.', 'Learn more': 'Más información',
+    'Allow camera access to use the photo booth.': 'Permite el acceso a la cámara para usar la cabina.',
+    'Allow the microphone to record a voice note.': 'Permite el micrófono para grabar una nota de voz.',
+    'in': 'en', 'Now!': '¡Ahora!', '+1': '+1',
+  };
+  const ES_PATTERNS = [
+    [/^Leave a note for (.+)$/, 'Deja una nota para $1'],
+    [/^Your score: (\d+) of (\d+)$/, 'Tu puntaje: $1 de $2'],
+    [/^Not quite\. The answer was (.+)\.$/, 'Casi. La respuesta era $1.'],
+    [/^(\d+) votes?( · .*)?$/, (m, n, rest) => n + (n === '1' ? ' voto' : ' votos') + (rest || '').replace('updating live', 'en vivo').replace('voting closed', 'votación cerrada').replace('the answer is revealed soon', 'pronto se revela la respuesta')],
+    [/^(\d+) answers?( so far)?(.*)$/, (m, n, so, rest) => n + (n === '1' ? ' respuesta' : ' respuestas') + (so ? ' hasta ahora' : '') + rest.replace('updating live', 'en vivo')],
+    [/^🎬 Record a$/, '🎬 Graba un clip de'],
+    [/^-second clip$/, ' segundos'],
+  ];
+  function t(text) {
+    if (Camera.lang !== 'es') return text;
+    if (ES[text]) return ES[text];
+    for (const [re, to] of ES_PATTERNS) if (re.test(text)) return text.replace(re, to);
+    return text;
+  }
+  const originals = new WeakMap();
+  function translatePage() {
+    const walk = document.createTreeWalker(document.querySelector('main'), NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (n.parentElement.closest('[data-no-translate]')) continue;
+      const raw = n.nodeValue.trim();
+      if (!raw) continue;
+      if (Camera.lang === 'es') {
+        const es = t(raw);
+        if (es !== raw) { originals.set(n, raw); n.nodeValue = n.nodeValue.replace(raw, es); }
+      } else if (originals.has(n)) {
+        n.nodeValue = originals.get(n);
+        originals.delete(n);
+      }
+    }
+    document.querySelectorAll('main [placeholder]').forEach((el) => {
+      if (!el.dataset.ph) el.dataset.ph = el.placeholder;
+      el.placeholder = Camera.lang === 'es' ? t(el.dataset.ph) : el.dataset.ph;
+    });
+  }
+  let translating = false;
+  const observer = new MutationObserver(() => {
+    if (translating || Camera.lang !== 'es') return;
+    translating = true;
+    translatePage();
+    translating = false;
+  });
+  function setupLanguage() {
+    const offered = !!features().spanish;
+    let saved = null;
+    try { saved = localStorage.getItem('wedcam-lang'); } catch (e) {}
+    const wantEs = offered && (saved ? saved === 'es' : /^es\b/i.test(navigator.language || ''));
+    Camera.setLang(wantEs ? 'es' : 'en');
+    $('lang-toggle').hidden = !offered;
+    $('lang-toggle').textContent = wantEs ? 'English' : 'Español';
+    observer.disconnect();
+    if (wantEs) observer.observe(document.querySelector('main'), { childList: true, subtree: true, characterData: true });
+  }
+  $('lang-toggle').addEventListener('click', () => {
+    const next = Camera.lang === 'es' ? 'en' : 'es';
+    try { localStorage.setItem('wedcam-lang', next); } catch (e) {}
+    setupLanguage();
+    route();
+    translatePage();
+  });
+
   // ---- Background refresh ----
   // One request brings the event (open / full), photos and polls together. Phones refresh
   // roughly every 45 seconds, at random times so a room full of them doesn't hit the server in
@@ -1135,7 +1588,11 @@
   async function refreshAll() {
     lastRefresh = Date.now();
     try {
-      const { event, photos, polls: list, messages: notes, board: top } = await Camera.loadEvent();
+      const { event, photos, polls: list, messages: notes, board: top, live: liveNow, songs: songList } = await Camera.loadEvent();
+      live = liveNow || {};
+      songs = songList || [];
+      renderLive();
+      if (currentScreen() === 'songs') renderSongs();
       const was = CONFIG;
       CONFIG = Object.assign({}, CONFIG, event);
       board = top || [];
@@ -1144,7 +1601,7 @@
       renderFeatures();
       refreshPhotos(photos);
       const onCamera = ['camera', 'review'].indexOf(currentScreen()) >= 0;
-      if (!pollShown && !onCamera && currentScreen() !== 'guestbook' && (was.open !== CONFIG.open || was.full !== CONFIG.full)) route();
+      if (!pollShown && !onCamera && !['guestbook', 'booth', 'songs'].includes(currentScreen()) && (was.open !== CONFIG.open || was.full !== CONFIG.full)) route();
       if (currentScreen() === 'guestbook') renderGuestbook();
       refreshDelay = REFRESH_MS;
     } catch (err) {
@@ -1175,8 +1632,12 @@
 
   async function init() {
     try {
-      const { event, photos, polls: firstPolls, messages: notes, board: top } = await loadWithRetry();
+      const { event, photos, polls: firstPolls, messages: notes, board: top, live: liveNow, songs: songList } = await loadWithRetry();
       CONFIG = event;
+      live = liveNow || {};
+      songs = songList || [];
+      setupLanguage();
+      renderLive();
       board = top || [];
       mergeMessages(notes);
       setPolls(firstPolls || []);
@@ -1184,6 +1645,7 @@
       setupCta(CONFIG);
       $('slideshow-link').href = Camera.pageUrl('slideshow.html');
       route();
+      if (Camera.lang === 'es') translatePage();
       refreshPhotos(photos);
       setInterval(nextReel, 4000);
       scheduleRefresh();

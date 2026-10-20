@@ -18,5 +18,7 @@ window.THEMES = {
   navy:       { background: '#f2f4f8', card: '#ffffff', text: '#14203a', muted: '#5f6b80', accent: '#1f3a6e', accentText: '#ffffff', line: '#dbe1ea' },
   // Lewis University brand book: Lewis Red, warm greys, light beige.
   lewis:      { background: '#f5f3ec', card: '#ffffff', text: '#1a1a1a', muted: '#51534a', accent: '#940731', accentText: '#ffffff', line: '#e3e0d4' },
+  // Lewis Athletics: Bold Red, black and grey from the athletics brand guide.
+  lewisAthletics: { background: '#f3f3f4', card: '#ffffff', text: '#111111', muted: '#5f6063', accent: '#c22033', accentText: '#ffffff', line: '#e1e1e3' },
   blackTie:   { background: '#121212', card: '#1d1d1d', text: '#f3efe8', muted: '#a39d94', accent: '#c9a96a', accentText: '#1a1612', line: '#333030' },
 };

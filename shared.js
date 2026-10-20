@@ -20,6 +20,8 @@
     features: {
       guestbook: true, hearts: true, look: 'choose', stamp: true, video: false, clipSeconds: 10, clips: 1,
       develop: { at: '', screens: true, until: 0 }, developing: false, album: true,
+      booth: true, frame: 'band', tables: true, voice: true, songs: true, spanish: true,
+      rolls: [{ id: 'ceremony', text: 'Ceremony' }, { id: 'reception', text: 'Reception' }],
       challenges: [{ id: 'dance', text: 'Someone on the dance floor' }, { id: 'oldest', text: 'The longest-married couple' },
         { id: 'selfie', text: 'A selfie with the couple' }],
     },
@@ -65,15 +67,54 @@
     },
   };
 
+  // Spanish built-in wording (custom wording from the Mac app is shown as written).
+  const COPY_ES = {
+    wedding: {
+      headline: 'La boda de',
+      intro: 'Tienes {shots} fotos en esta cámara. Como en una cámara desechable, no se pueden borrar, así que aprovéchalas.',
+      nameLabel: 'Tu nombre (para saber quién tomó cada foto)',
+      startButton: 'Abrir la cámara',
+      doneIcon: '♥',
+      doneTitle: '¡Listo!',
+      doneText: 'Se acabó el rollo. Gracias por capturar nuestro día.',
+      closed: '¡Gracias por celebrar con {title}!',
+      cardEyebrow: 'Sé nuestro fotógrafo',
+      cardTitle: 'Toma una cámara desechable',
+      cardSub: 'Toma {shots} fotos para nuestro álbum. No necesitas ninguna app.',
+      joinTitle: 'Agrega tus fotos',
+      joinSub: 'Escanea para tu cámara desechable',
+      emptyText: 'Escanea para tomar tu cámara desechable. Las fotos aparecerán aquí.',
+    },
+    event: {
+      headline: '',
+      intro: 'Tienes {shots} fotos para capturar el momento. Cada foto va directo al álbum del evento.',
+      nameLabel: 'Tu nombre (opcional, para el crédito de la foto)',
+      startButton: 'Abrir la cámara',
+      doneIcon: '✦',
+      doneTitle: 'Se te acabaron las fotos',
+      doneText: '¡Gracias por compartir tu mirada del evento!',
+      closed: '¡Gracias por ser parte de {title}!',
+      cardEyebrow: 'Comparte tu mirada',
+      cardTitle: 'Toma fotos para el álbum del evento',
+      cardSub: 'Escanea para tomar {shots} fotos. No necesitas ninguna app.',
+      joinTitle: 'Comparte tus fotos',
+      joinSub: 'Escanea para agregar las tuyas a la presentación',
+      emptyText: 'Escanea para compartir tus fotos. Aparecerán aquí.',
+    },
+  };
+  let lang = 'en';
+  function setLang(l) { lang = l === 'es' ? 'es' : 'en'; document.documentElement.lang = lang; }
+
   // "{shots} shots" / "{shots} photos" read "1 shot" / "1 photo" for a one-shot camera.
   function fill(text, ev) {
     let t = String(text);
-    if (Number(ev.shots) === 1) t = t.replace(/\{shots\} (shot|photo)s\b/g, '1 $1');
+    if (Number(ev.shots) === 1) t = t.replace(/\{shots\} (shot|photo)s\b/g, '1 $1').replace(/\{shots\} fotos\b/g, '1 foto');
     return t.replace(/\{shots\}/g, ev.shots).replace(/\{title\}/g, ev.title);
   }
 
   function copyFor(ev) {
-    const base = COPY[ev.mode] || COPY.wedding;
+    const table = lang === 'es' ? COPY_ES : COPY;
+    const base = table[ev.mode] || table.wedding;
     const out = {};
     Object.keys(base).forEach((k) => {
       out[k] = fill(base[k], ev);
@@ -166,7 +207,8 @@
   // Rejects with err.code = 'missing' | 'not-found' | 'network'. Screens pass { screen: true }.
   async function loadEvent(opts) {
     if (!eventId && !demo) throw codeError('missing');
-    if (demo) return { event: DEMO_EVENT, photos: await demoPhotos(), polls: demoPolls, messages: demoMessages.slice(), board: [] };
+    if (demo) return { event: DEMO_EVENT, photos: await demoPhotos(), polls: demoPolls, messages: demoMessages.slice(), board: [],
+      live: demoLive, songs: demoSongs.slice() };
     let data;
     try {
       const screen = opts && opts.screen ? '&screen=1' : '';
@@ -178,7 +220,7 @@
     if (!data.ok) throw codeError(data.error === 'not-found' ? 'not-found' : 'network');
     if (data.event && !data.event.features) data.event.features = {}; // older Code.gs
     return { event: data.event, photos: useSamples ? await demoPhotos() : (data.photos || []), polls: data.polls || [],
-      messages: data.messages || [], board: data.board || [] };
+      messages: data.messages || [], board: data.board || [], live: data.live || {}, songs: data.songs || [] };
   }
 
   // A guest action (POST). text/plain keeps it a "simple" request, so there's no CORS preflight.
@@ -193,13 +235,59 @@
     return data;
   }
 
-  async function sendMessage(name, text, photo) {
+  async function sendMessage(name, text, photo, audio) {
     if (demo) {
-      const m = { id: 'demo' + Date.now(), name, text, t: Date.now() };
+      const m = { id: 'demo' + Date.now(), name, text: text || '🎤 Voice note', t: Date.now() };
       demoMessages.unshift(m);
       return m;
     }
-    return (await send({ action: 'message', name, text, photo })).message;
+    return (await send({ action: 'message', name, text, photo, audio })).message;
+  }
+
+  // ---- Song requests ----
+  const demoSongs = [
+    { id: 'demosong1', title: 'September', artist: 'Earth, Wind & Fire', votes: 12 },
+    { id: 'demosong2', title: 'Mr. Brightside', artist: 'The Killers', votes: 8 },
+  ];
+  async function requestSong(title, artist, name) {
+    if (demo) { const s = { id: 'demosong' + Date.now(), title, artist, votes: 1 }; demoSongs.push(s); return s; }
+    return (await send({ action: 'song', title, artist, name })).song;
+  }
+  async function voteSong(id) {
+    if (demo) { const s = demoSongs.find((x) => x.id === id); if (s) s.votes += 1; return; }
+    await send({ action: 'songVote', song: id });
+  }
+  async function markSongs(key, ids, status) {
+    if (demo) { demoSongs.forEach((x) => { if (ids.includes(x.id)) x.s = status; }); return demoSongs.map((x) => ({ ...x, s: x.s || 'new' })); }
+    return (await send({ action: 'songs.mark', key, ids, status })).songs || [];
+  }
+
+  // What the screens poll every few seconds (announcements, spotlight, raffle, screen focus).
+  async function getLive() {
+    if (demo) return demoLive;
+    const res = await fetch(apiUrl + '?action=live&e=' + encodeURIComponent(eventId), { cache: 'no-store' });
+    const data = await readJSON(res);
+    return data.ok ? data.live || {} : {};
+  }
+
+  // ---- Run-of-show (admin key) ----
+  let demoLive = {};
+  async function control(key, op, args) {
+    if (demo) {
+      if (op === 'announce') demoLive.announce = args.text ? { id: 'a' + Date.now(), text: args.text, until: Date.now() + 600000 } : undefined;
+      if (op === 'countdown') demoLive.countdown = args.label ? { label: args.label, at: args.at } : undefined;
+      if (op === 'screen') demoLive.screen = args.mode === 'auto' ? undefined : args.mode;
+      if (op === 'spotlight') { const p = (await demoPhotos()).find((x) => x.id === args.photo); demoLive.spotlight = p ? { id: 's' + Date.now(), photo: p.id, name: p.name, at: Date.now() } : undefined; }
+      if (op === 'raffle') {
+        const names = [...new Set((await demoPhotos()).map((p) => p.name).filter(Boolean))];
+        const winner = names[Math.floor(Math.random() * names.length)];
+        demoLive.raffle = { id: 'r' + Date.now(), name: winner, entries: names.length, at: Date.now() };
+        return { live: demoLive, winner, entries: names.length };
+      }
+      if (op === 'open') DEMO_EVENT.open = args.open;
+      return { live: demoLive };
+    }
+    return send(Object.assign({ action: 'control', key, op }, args || {}));
   }
 
   async function heart(photoId) {
@@ -238,7 +326,8 @@
     if (demo) {
       const photos = await demoPhotos();
       return { event: DEMO_EVENT, photos: photos.map((p) => ({ ...p, s: demoStatus[p.id] || 'new' })),
-        messages: demoMessages.map((m) => ({ ...m, s: m.s || 'new' })) };
+        messages: demoMessages.map((m) => ({ ...m, s: m.s || 'new' })), role: 'admin',
+        songs: demoSongs.map((x) => ({ ...x, s: x.s || 'new' })), live: demoLive };
     }
     const res = await fetch(apiUrl + '?action=admin&e=' + encodeURIComponent(eventId) + '&key=' + encodeURIComponent(key), { cache: 'no-store' });
     const data = await res.json();
@@ -301,7 +390,7 @@
     return data.photos;
   }
 
-  async function uploadPhoto(image, name, shot, challenge) {
+  async function uploadPhoto(image, name, shot, challenge, extra) {
     if (demo) {
       await new Promise((r) => setTimeout(r, 900));
       demoUploads.unshift({ id: 'demo' + Date.now(), name, t: Date.now(), src: image });
@@ -311,7 +400,7 @@
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ event: eventId, image, name, shot, challenge }),
+      body: JSON.stringify(Object.assign({ event: eventId, image, name, shot, challenge }, extra || {})),
     });
     const data = await readJSON(res);
     if (!data.ok) throw finalError(data.error || 'Upload failed');
@@ -395,6 +484,6 @@
   window.Camera = {
     eventId: demo && !eventId ? 'demo' : eventId, demo,
     loadEvent, applyTheme, applyFont, applyBranding, assetUrl, applyCopy, copyFor, listPhotos, uploadPhoto, photoUrl, photoFallbackUrl, pageUrl,
-    fitTitles, adminPhotos, moderate, listPolls, vote, sendMessage, heart, star, moderateMessages, uploadClip, videoUrl,
+    fitTitles, getLive, setLang, get lang() { return lang; }, requestSong, voteSong, markSongs, control, adminPhotos, moderate, listPolls, vote, sendMessage, heart, star, moderateMessages, uploadClip, videoUrl,
   };
 })();

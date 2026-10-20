@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="config.js?v=20261020d"></script>
-  <script src="shared.js?v=20261020d"></script>
+  <script src="config.js?v=20261021a"></script>
+  <script src="shared.js?v=20261021a"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -208,6 +208,10 @@
     if (stars) out.push(['stars', '★ Picks', stars]);
     const loved = photos.filter((p) => p.h).length;
     if (loved) out.push(['loved', '♥ Most loved', loved]);
+    (f.rolls || []).forEach((r) => {
+      const n = photos.filter((p) => p.r === r.id).length;
+      if (n) out.push(['r:' + r.id, r.text, n]);
+    });
     (f.challenges || []).forEach((c) => {
       const n = photos.filter((p) => p.c === c.id).length;
       if (n) out.push(['c:' + c.id, c.text, n]);
@@ -223,6 +227,7 @@
     if (filter === 'loved') return photos.filter((p) => p.h).sort((a, b) => b.h - a.h);
     if (filter === 'clips') return photos.filter((p) => p.v);
     if (filter.indexOf('c:') === 0) return photos.filter((p) => p.c === filter.slice(2));
+    if (filter.indexOf('r:') === 0) return photos.filter((p) => p.r === filter.slice(2));
     return photos;
   }
 
@@ -266,7 +271,17 @@
         p.textContent = m.text;
         const b = document.createElement('b');
         b.textContent = '— ' + (m.name || 'A guest');
-        div.append(p, b);
+        div.append(p);
+        // A voice note plays from Drive.
+        if (m.photo && m.photo.indexOf('a:') === 0) {
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.preload = 'none';
+          audio.style.width = '100%';
+          audio.src = 'https://drive.usercontent.google.com/download?id=' + encodeURIComponent(m.photo.slice(2)) + '&export=download';
+          div.append(audio);
+        }
+        div.append(b);
         $('notes').appendChild(div);
       });
       return;
