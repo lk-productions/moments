@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f1ea">
+  <title>Album · LK Moments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="config.js?v=20261020a"></script>
+  <script src="shared.js?v=20261020a"></script>
+  <style>
+    :root {
+      --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
+      --accent: #a8784f; --accent-ink: #fff; --line: #e6ddd2;
+      --serif: "Cormorant Garamond", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font-family: var(--sans, Inter), system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 16px 60px; }
+    header { text-align: center; display: flex; flex-direction: column; gap: 6px; align-items: center; margin-bottom: 22px; }
+    .logo { max-width: 60%; max-height: 80px; object-fit: contain; }
+    .eyebrow { margin: 0; letter-spacing: .18em; text-transform: uppercase; font-size: 12px; color: var(--muted); }
+    h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(34px, 6vw, 56px); line-height: 1.05; margin: 0; }
+    .date { font-family: var(--serif); font-style: italic; color: var(--muted); font-size: 20px; margin: 0; }
+    .counts { color: var(--muted); font-size: 14px; margin: 4px 0 0; }
+
+    .client {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px;
+      display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center;
+    }
+    .client h2 { margin: 0; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); flex-basis: 100%; }
+    .stat { display: flex; flex-direction: column; min-width: 70px; }
+    .stat b { font-family: var(--serif); font-size: 28px; line-height: 1; }
+    .stat span { font-size: 12px; color: var(--muted); }
+    .client .spacer { flex: 1; }
+
+    .btn {
+      font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; white-space: nowrap;
+      padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    }
+    .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .btn[disabled] { opacity: .5; pointer-events: none; }
+
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; margin-bottom: 8px; scrollbar-width: none; position: sticky; top: 0; z-index: 3; background: var(--bg); }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: none; font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+      border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+    }
+    .chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); font-weight: 600; }
+    .chip small { color: var(--muted); margin-left: 4px; font-weight: 500; }
+
+    .grid { columns: 4 240px; column-gap: 12px; }
+    .item { break-inside: avoid; margin-bottom: 12px; position: relative; border-radius: 8px; overflow: hidden; background: #e8e1d8; cursor: zoom-in; }
+    .item img { width: 100%; display: block; min-height: 120px; }
+    .item .tag {
+      position: absolute; left: 8px; bottom: 8px; color: #fff; font-size: 12px; background: rgba(0,0,0,.5);
+      padding: 3px 9px; border-radius: 999px; font-family: var(--serif); font-style: italic; font-size: 15px;
+    }
+    .item .hearts { position: absolute; right: 8px; bottom: 8px; color: #fff; background: rgba(0,0,0,.5); padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .item .play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54px; height: 54px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .star {
+      position: absolute; right: 8px; top: 8px; width: 38px; height: 38px; border-radius: 50%; border: 0; cursor: pointer;
+      background: rgba(255,255,255,.9); color: #b9a99a; font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    }
+    .star.on { background: var(--accent); color: #fff; }
+
+    .notes { columns: 3 280px; column-gap: 12px; }
+    .note { break-inside: avoid; margin-bottom: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+    .note p { margin: 0; font-family: var(--serif); font-size: 21px; line-height: 1.3; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .note b { display: block; margin-top: 8px; font-size: 13px; color: var(--muted); font-weight: 500; }
+
+    .message { text-align: center; color: var(--muted); padding: 60px 16px; font-size: 17px; }
+    .message h2 { font-family: var(--serif); color: var(--ink); font-size: 32px; margin: 0 0 8px; }
+
+    .lightbox {
+      position: fixed; inset: 0; z-index: 20; background: rgba(10,8,6,.94);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px;
+    }
+    .lightbox img, .lightbox video { max-width: 100%; max-height: calc(100vh - 130px); object-fit: contain; border-radius: 4px; }
+    .lb-bar { display: flex; gap: 10px; align-items: center; color: #ddd; font-size: 14px; flex-wrap: wrap; justify-content: center; }
+    .lb-bar .btn { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+    .lb-bar .btn.on { background: var(--accent); border-color: var(--accent); }
+    .lb-close { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 16px; font-size: 30px; color: #fff; background: none; border: 0; cursor: pointer; }
+    .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); font-size: 44px; color: #fff; background: none; border: 0; cursor: pointer; padding: 16px; opacity: .7; }
+    .lb-prev { left: 0; } .lb-next { right: 0; }
+    .toast { position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; max-width: 90vw; text-align: center; }
+    footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 40px; }
+    body.has-bg::before { content: ""; position: fixed; inset: 0; z-index: -2; background: var(--bg-image) center / cover no-repeat; }
+    body.has-bg::after { content: ""; position: fixed; inset: 0; z-index: -1; background: color-mix(in srgb, var(--bg) 90%, transparent); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="logo" data-logo alt="" hidden>
+    <p class="eyebrow" data-copy="headline"></p>
+    <h1 data-title>Album</h1>
+    <p class="date" data-date></p>
+    <p class="counts" id="counts"></p>
+  </header>
+
+  <!-- With the admin key: the couple's / organizer's view -->
+  <section class="client" id="client" hidden>
+    <h2>Your event at a glance</h2>
+    <div class="stat"><b id="st-photos">0</b><span>photos</span></div>
+    <div class="stat"><b id="st-guests">0</b><span>guests</span></div>
+    <div class="stat"><b id="st-notes">0</b><span>notes</span></div>
+    <div class="stat"><b id="st-hearts">0</b><span>hearts</span></div>
+    <div class="stat"><b id="st-stars">0</b><span>your picks</span></div>
+    <div class="spacer"></div>
+    <button class="btn" id="dl-stars">Download picks</button>
+    <button class="btn primary" id="dl-all">Download all</button>
+    <p class="counts" style="flex-basis:100%;margin:0">Tap ☆ on a photo to mark your favorites. Downloads are full-size originals.</p>
+  </section>
+
+  <nav class="chips" id="chips" hidden></nav>
+  <div class="grid" id="grid"></div>
+  <div class="notes" id="notes" hidden></div>
+  <div class="message" id="message" hidden></div>
+  <footer>Made with LK Moments</footer>
+</div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" id="lb-close" aria-label="Close">×</button>
+  <button class="lb-nav lb-prev" id="lb-prev" aria-label="Previous">‹</button>
+  <button class="lb-nav lb-next" id="lb-next" aria-label="Next">›</button>
+  <img id="lb-img" alt="">
+  <video id="lb-video" controls playsinline hidden></video>
+  <div class="lb-bar">
+    <span id="lb-meta"></span>
+    <button class="btn" id="lb-star" hidden>☆ Pick</button>
+    <a class="btn" id="lb-dl" target="_blank" rel="noopener">Download</a>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const KEY_STORE = 'wedcam-admin:' + Camera.eventId;
+  let key = params.get('key') || '';
+  let event = null;
+  let photos = [];
+  let messages = [];
+  let filter = 'all';
+  let lbIndex = -1;
+
+  const onShow = (p) => (event.approveFirst ? p.s === 'approved' : p.s !== 'hidden');
+  const isClient = () => !!key;
+  const downloadUrl = (p) => 'https://drive.usercontent.google.com/download?id=' + encodeURIComponent(p.id) + '&export=download';
+
+  async function load() {
+    try {
+      if (key) {
+        try {
+          const data = await Camera.adminPhotos(key);
+          event = data.event;
+          photos = (data.photos || []).filter((p) => !data.event || onShow(p));
+          messages = (data.messages || []).filter((m) => (event.approveFirst ? m.s === 'approved' : m.s !== 'hidden'));
+          try { localStorage.setItem(KEY_STORE, key); } catch (e) {}
+        } catch (err) {
+          key = '';
+        }
+      }
+      if (!key) {
+        const data = await Camera.loadEvent();
+        event = data.event;
+        photos = data.photos;
+        messages = data.messages || [];
+      }
+    } catch (err) {
+      return showMessage(err.code === 'network' ? "Can't connect" : 'Album not found',
+        err.code === 'network' ? 'Check your connection and reload.' : 'Check the link. It should end in ?e= and the event ID.');
+    }
+    document.title = event.title + ' · Album';
+    Camera.applyCopy(event);
+    Camera.applyBranding(event, { background: 'phone' });
+    const f = event.features || {};
+    if (!isClient() && f.album === false) return showMessage('This album is private', 'Ask the hosts for the link to their album.');
+    if (!isClient() && f.developing) {
+      const when = new Date(f.develop.until);
+      return showMessage('Still developing 📸', 'The photos will be ready ' + when.toLocaleString(undefined, { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + '.');
+    }
+    render();
+  }
+
+  function showMessage(title, text) {
+    const box = $('message');
+    box.innerHTML = '<h2></h2><p></p>';
+    box.querySelector('h2').textContent = title;
+    box.querySelector('p').textContent = text;
+    box.hidden = false;
+    $('grid').hidden = true;
+  }
+
+  function filters() {
+    const f = event.features || {};
+    const out = [['all', 'Everything', photos.length]];
+    const stars = photos.filter((p) => p.st).length;
+    if (stars) out.push(['stars', '★ Picks', stars]);
+    const loved = photos.filter((p) => p.h).length;
+    if (loved) out.push(['loved', '♥ Most loved', loved]);
+    (f.challenges || []).forEach((c) => {
+      const n = photos.filter((p) => p.c === c.id).length;
+      if (n) out.push(['c:' + c.id, c.text, n]);
+    });
+    const clips = photos.filter((p) => p.v).length;
+    if (clips) out.push(['clips', '🎬 Clips', clips]);
+    if (messages.length) out.push(['notes', '✍️ Guestbook', messages.length]);
+    return out;
+  }
+
+  function visible() {
+    if (filter === 'stars') return photos.filter((p) => p.st);
+    if (filter === 'loved') return photos.filter((p) => p.h).sort((a, b) => b.h - a.h);
+    if (filter === 'clips') return photos.filter((p) => p.v);
+    if (filter.indexOf('c:') === 0) return photos.filter((p) => p.c === filter.slice(2));
+    return photos;
+  }
+
+  function render() {
+    const guests = new Set(photos.map((p) => p.name).filter(Boolean)).size;
+    $('counts').textContent = photos.length + (photos.length === 1 ? ' photo' : ' photos') + (guests ? ' from ' + guests + (guests === 1 ? ' guest' : ' guests') : '');
+    if (isClient()) {
+      $('client').hidden = false;
+      $('st-photos').textContent = photos.length;
+      $('st-guests').textContent = guests;
+      $('st-notes').textContent = messages.length;
+      $('st-hearts').textContent = photos.reduce((n, p) => n + (p.h || 0), 0);
+      $('st-stars').textContent = photos.filter((p) => p.st).length;
+      $('dl-stars').disabled = !photos.some((p) => p.st);
+    }
+    const list = filters();
+    if (!list.some((x) => x[0] === filter)) filter = 'all';
+    const chips = $('chips');
+    chips.hidden = list.length < 2;
+    chips.innerHTML = '';
+    list.forEach(([id, label, n]) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (filter === id ? ' on' : '');
+      b.textContent = label;
+      const small = document.createElement('small');
+      small.textContent = n;
+      b.appendChild(small);
+      b.onclick = () => { filter = id; render(); window.scrollTo({ top: $('chips').offsetTop - 8 }); };
+      chips.appendChild(b);
+    });
+
+    const notes = filter === 'notes';
+    $('notes').hidden = !notes;
+    $('grid').hidden = notes;
+    if (notes) {
+      $('notes').innerHTML = '';
+      messages.forEach((m) => {
+        const div = document.createElement('div');
+        div.className = 'note';
+        const p = document.createElement('p');
+        p.textContent = m.text;
+        const b = document.createElement('b');
+        b.textContent = '— ' + (m.name || 'A guest');
+        div.append(p, b);
+        $('notes').appendChild(div);
+      });
+      return;
+    }
+    const grid = $('grid');
+    grid.innerHTML = '';
+    const items = visible();
+    if (!items.length) {
+      showMessage('No photos yet', 'Photos guests take will show up here.');
+      $('grid').hidden = true;
+      return;
+    }
+    $('message').hidden = true;
+    items.forEach((p, i) => grid.appendChild(tile(p, i)));
+  }
+
+  function tile(p, i) {
+    const el = document.createElement('div');
+    el.className = 'item';
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.alt = p.name ? 'Photo by ' + p.name : 'Photo';
+    img.src = Camera.photoUrl(p, 600);
+    img.onerror = () => { if (!img.dataset.fb && !p.src) { img.dataset.fb = 1; img.src = Camera.photoFallbackUrl(p, 600); } };
+    el.appendChild(img);
+    if (p.v) el.insertAdjacentHTML('beforeend', '<span class="play">▶</span>');
+    if (p.name) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = p.name; el.appendChild(t); }
+    if (p.h) { const h = document.createElement('span'); h.className = 'hearts'; h.textContent = '♥ ' + p.h; el.appendChild(h); }
+    if (isClient()) {
+      const s = document.createElement('button');
+      s.className = 'star' + (p.st ? ' on' : '');
+      s.textContent = p.st ? '★' : '☆';
+      s.setAttribute('aria-label', p.st ? 'Remove from picks' : 'Add to picks');
+      s.onclick = (e) => { e.stopPropagation(); toggleStar(p); };
+      el.appendChild(s);
+    }
+    el.onclick = () => openLightbox(i);
+    return el;
+  }
+
+  async function toggleStar(p) {
+    const on = !p.st;
+    p.st = on ? 1 : 0;
+    render();
+    if (lbIndex >= 0) openLightbox(lbIndex);
+    try {
+      await Camera.star(key, [p.id], on);
+    } catch (err) {
+      p.st = on ? 0 : 1;
+      render();
+      toast("Couldn't save. Check your connection.");
+    }
+  }
+
+  // ---- Lightbox ----
+  function openLightbox(i) {
+    const list = visible();
+    if (!list.length) return closeLightbox();
+    lbIndex = (i + list.length) % list.length;
+    const p = list[lbIndex];
+    const img = $('lb-img'), video = $('lb-video');
+    video.pause();
+    img.hidden = !!p.v;
+    video.hidden = !p.v;
+    if (p.v) {
+      video.src = Camera.videoUrl(p);
+    } else {
+      img.dataset.fb = '';
+      img.onerror = () => { if (!img.dataset.fb && !p.src) { img.dataset.fb = 1; img.src = Camera.photoFallbackUrl(p, 2000); } };
+      img.src = Camera.photoUrl(p, 2000);
+    }
+    $('lb-meta').textContent = (p.name || 'A guest') + ' · ' + (lbIndex + 1) + ' / ' + list.length;
+    $('lb-dl').href = p.src || downloadUrl(p);
+    $('lb-star').hidden = !isClient();
+    $('lb-star').classList.toggle('on', !!p.st);
+    $('lb-star').textContent = p.st ? '★ Picked' : '☆ Pick';
+    $('lb-star').onclick = () => toggleStar(p);
+    $('lightbox').hidden = false;
+  }
+  function closeLightbox() { lbIndex = -1; $('lb-video').pause(); $('lightbox').hidden = true; }
+  $('lb-close').onclick = closeLightbox;
+  $('lb-prev').onclick = () => openLightbox(lbIndex - 1);
+  $('lb-next').onclick = () => openLightbox(lbIndex + 1);
+  document.addEventListener('keydown', (e) => {
+    if ($('lightbox').hidden) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') openLightbox(lbIndex - 1);
+    if (e.key === 'ArrowRight') openLightbox(lbIndex + 1);
+  });
+  // Swipe between photos on phones.
+  let touchX = null;
+  $('lightbox').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  $('lightbox').addEventListener('touchend', (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) > 50) openLightbox(lbIndex + (dx < 0 ? 1 : -1));
+  });
+
+  // ---- Download as ZIP, in the browser (no server involved) ----
+  // Large albums are split into parts so phones and older laptops don't run out of memory.
+  const PART = 150;
+  async function downloadZip(list, label) {
+    if (!window.JSZip) return toast('Downloads need an internet connection to load. Reload and try again.');
+    const buttons = [$('dl-all'), $('dl-stars')];
+    buttons.forEach((b) => { b.disabled = true; });
+    const parts = Math.ceil(list.length / PART);
+    try {
+      for (let part = 0; part < parts; part++) {
+        const zip = new JSZip();
+        const chunk = list.slice(part * PART, (part + 1) * PART);
+        let done = 0;
+        let failed = 0;
+        const queue = chunk.slice();
+        const worker = async () => {
+          while (queue.length) {
+            const p = queue.shift();
+            try {
+              const res = await fetch(p.src || downloadUrl(p));
+              if (!res.ok) throw new Error(res.status);
+              const name = (p.f || ((p.name || 'guest').replace(/\W+/g, '-') + '-' + p.id + (p.v ? '.mp4' : '.jpg')));
+              zip.file(name, await res.blob(), { binary: true });
+            } catch (err) { failed++; }
+            done++;
+            toast('Gathering ' + label + (parts > 1 ? ' (part ' + (part + 1) + ' of ' + parts + ')' : '') + ': ' + done + ' / ' + chunk.length);
+          }
+        };
+        await Promise.all([worker(), worker(), worker(), worker()]);
+        toast('Packing the zip…');
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (event.id || 'album') + '-' + label.replace(/\W+/g, '-') + (parts > 1 ? '-part' + (part + 1) : '') + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+        if (failed) toast(failed + ' file(s) could not be downloaded; the rest are in the zip.');
+      }
+      toast('Download ready.');
+    } catch (err) {
+      toast("Couldn't make the zip. Try again, or download photos one at a time.");
+    }
+    buttons.forEach((b) => { b.disabled = false; });
+    $('dl-stars').disabled = !photos.some((p) => p.st);
+  }
+  $('dl-all').onclick = () => downloadZip(photos, 'all-photos');
+  $('dl-stars').onclick = () => downloadZip(photos.filter((p) => p.st), 'picks');
+
+  function toast(msg) {
+    $('toast').textContent = msg;
+    $('toast').hidden = false;
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => { $('toast').hidden = true; }, 4000);
+  }
+
+  load();
+</script>
+</body>
+</html>

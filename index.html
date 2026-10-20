@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f1ea">
+  <title>LK Moments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="config.js?v=20261020a"></script>
+  <script src="shared.js?v=20261020a"></script>
+  <style>
+    :root {
+      --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
+      --accent: #a8784f; --accent-ink: #fff; --line: #e6ddd2; --danger: #b04a3c;
+      --serif: "Cormorant Garamond", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans, Inter), system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 440px;
+      margin: 0 auto;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+    }
+    section { display: flex; flex-direction: column; flex: 1; gap: 16px; }
+    section[hidden], [hidden] { display: none !important; }
+    p { margin: 0; }
+    .eyebrow {
+      margin: 8px 0 0; text-align: center; letter-spacing: .18em;
+      text-transform: uppercase; font-size: 12px; color: var(--muted);
+    }
+    h1, h2 { font-family: var(--serif); font-weight: 600; text-align: center; margin: 0; line-height: 1.1; }
+    h1 { font-size: 42px; }
+    h2 { font-size: 34px; }
+    .date { text-align: center; color: var(--muted); margin-top: -8px; font-style: italic; font-family: var(--serif); font-size: 20px; }
+    .lead { text-align: center; color: var(--muted); }
+    .spacer { flex: 1; }
+
+    /* Film strip showing shots left */
+    .film {
+      display: flex; justify-content: center; gap: 8px;
+      padding: 14px 16px; background: #2b2622; border-radius: 10px; position: relative;
+    }
+    .film::before, .film::after {
+      content: ""; position: absolute; left: 10px; right: 10px; height: 4px;
+      background: repeating-linear-gradient(90deg, #f6f1ea 0 6px, transparent 6px 14px); opacity: .5;
+    }
+    .film::before { top: 4px; }
+    .film::after { bottom: 4px; }
+    .frame { width: 42px; height: 30px; border-radius: 3px; background: #e9c79a; transition: background .3s, opacity .3s; }
+    .frame.used { background: #5a514b; opacity: .6; }
+
+    /* Polaroid reel of guests' photos */
+    .reel {
+      align-self: center;
+      width: min(58vw, 230px);
+      background: #fff;
+      padding: 10px 10px 0;
+      border-radius: 4px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.16);
+      transform: rotate(-2deg);
+      margin: 6px 0 4px;
+    }
+    .reel-photo { position: relative; aspect-ratio: 4 / 5; background: #eee; overflow: hidden; }
+    .reel-photo img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; opacity: 0; transition: opacity .9s ease;
+    }
+    .reel-photo img.on { opacity: 1; }
+    .reel-cap {
+      height: 40px; display: flex; align-items: center; justify-content: center;
+      font-family: var(--serif); font-style: italic; font-size: 18px; color: #4a423c;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+    label.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); }
+    input[type=text] {
+      font: inherit; font-size: 17px; color: var(--ink);
+      padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+    }
+    input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; font: inherit; font-weight: 600; font-size: 17px;
+      padding: 16px; border-radius: 999px; border: 0; cursor: pointer;
+      background: var(--accent); color: var(--accent-ink); text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .btn[disabled] { opacity: .5; pointer-events: none; }
+
+    .shutter-wrap { display: flex; flex-direction: column; align-items: center; margin: 12px 0; }
+    .shutter {
+      width: 168px; height: 168px; border-radius: 50%;
+      background: var(--card); color: var(--ink); border: 8px solid var(--ink);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .shutter:active { transform: scale(.96); }
+    .shutter svg { width: 64px; height: 64px; }
+    .count { font-family: var(--serif); font-size: 64px; font-weight: 600; text-align: center; line-height: 1; }
+    .count-label { text-align: center; color: var(--muted); margin-top: 6px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    .preview {
+      width: 100%; max-height: 55vh; object-fit: contain; border-radius: 4px;
+      background: #fff; padding: 10px 10px 36px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.18); transform: rotate(-1.5deg);
+    }
+    .status { text-align: center; min-height: 24px; color: var(--muted); font-size: 15px; }
+    .status.error { color: var(--danger); }
+    .heart { text-align: center; font-size: 40px; color: var(--accent); line-height: 1; }
+    .spinner {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid currentColor; border-top-color: transparent; opacity: .8;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    html.loading main { visibility: hidden; }
+
+    /* Live polls */
+    .poll-card {
+      display: grid; grid-template-columns: 1fr auto; grid-template-areas: "tag go" "q go"; gap: 2px 12px;
+      align-items: center; text-align: left; width: 100%; font: inherit; cursor: pointer;
+      background: var(--card); color: var(--ink); border: 1.5px solid var(--accent); border-radius: 14px; padding: 12px 14px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .poll-tag { grid-area: tag; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+    .poll-q { grid-area: q; font-weight: 600; font-size: 15px; line-height: 1.3; }
+    .poll-go { grid-area: go; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 999px; white-space: nowrap; }
+    .poll-options { display: flex; flex-direction: column; gap: 10px; }
+    .poll-option {
+      font: inherit; font-size: 17px; font-weight: 500; text-align: left; cursor: pointer; width: 100%;
+      padding: 16px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+    }
+    .poll-option:active { border-color: var(--accent); }
+    .poll-result { position: relative; border-radius: 12px; overflow: hidden; background: var(--card); border: 1px solid var(--line); padding: 14px 16px; }
+    .poll-result .fill { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--accent) 22%, transparent); transition: width .8s ease; }
+    .poll-result.mine { border-color: var(--accent); }
+    .poll-result .row { position: relative; display: flex; justify-content: space-between; gap: 10px; font-size: 16px; }
+    .poll-result .row b { font-variant-numeric: tabular-nums; }
+    .poll-total { text-align: center; color: var(--muted); font-size: 14px; }
+    .poll-result.right { border: 2px solid #2f8a55; }
+    .poll-result.right .fill { background: color-mix(in srgb, #2f8a55 26%, transparent); }
+    .poll-result.wrong { opacity: .55; }
+    .poll-verdict { text-align: center; font-weight: 600; font-size: 18px; margin: 0; }
+
+    /* After the last photo: a message and a button (e.g. donations) */
+    .cta {
+      display: flex; flex-direction: column; gap: 12px; text-align: center;
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 16px;
+    }
+    .cta-text { color: var(--ink); white-space: pre-line; }
+    /* Script faces read small and don't italicise well. */
+    html[data-font="script"] h1, html[data-font="script"] h2 { font-size: 52px; font-weight: 400; }
+    html[data-font="script"] .date, html[data-font="script"] .reel-cap { font-style: normal; }
+
+    /* Guestbook, challenges, hearts, looks, clips, word clouds */
+    .mini-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+      font: inherit; font-size: 15px; font-weight: 600; padding: 12px; border-radius: 12px; cursor: pointer;
+      border: 1.5px solid var(--line); background: var(--card); color: var(--ink); -webkit-tap-highlight-color: transparent;
+    }
+    .chips-label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); text-align: center; margin-bottom: 6px; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; justify-content: safe center; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: none; font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+      border: 1.5px solid var(--line); background: var(--card); color: var(--ink); -webkit-tap-highlight-color: transparent;
+    }
+    .chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); font-weight: 600; }
+    .chip.done::after { content: " ✓"; color: var(--accent); }
+    textarea {
+      width: 100%; font: inherit; font-size: 17px; color: var(--ink); resize: vertical; min-height: 110px;
+      padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+    }
+    textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .gb-count { text-align: right; font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .messages { display: flex; flex-direction: column; gap: 10px; }
+    .message { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+    .message p { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .message b { display: block; font-size: 13px; color: var(--muted); font-weight: 500; margin-top: 6px; }
+    .reel-heart {
+      position: absolute; right: 8px; bottom: 8px; z-index: 2; border: 0; border-radius: 999px; cursor: pointer;
+      background: rgba(255,255,255,.92); color: #c0392b; font: 600 14px system-ui, sans-serif; padding: 6px 10px;
+      display: flex; gap: 4px; align-items: center; -webkit-tap-highlight-color: transparent;
+    }
+    .reel-heart.on { background: #c0392b; color: #fff; }
+    .reel-heart:active { transform: scale(.92); }
+    .reel-play { position: absolute; left: 8px; bottom: 8px; z-index: 2; color: #fff; font-size: 13px; background: rgba(0,0,0,.55); padding: 4px 8px; border-radius: 999px; }
+    .developing { text-align: center; background: var(--card); border: 1px dashed var(--line); border-radius: 14px; padding: 14px; color: var(--muted); }
+    .word-cloud { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 14px; padding: 8px 0; }
+    .word-cloud span { font-family: var(--serif); font-weight: 600; color: var(--ink); line-height: 1.1; }
+    .word-cloud span.mine { color: var(--accent); }
+    .word-form { display: flex; gap: 8px; }
+    .word-form input { flex: 1; min-width: 0; }
+    .word-form .btn { width: auto; padding: 12px 20px; }
+    .board { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+    .board h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; text-align: center; }
+    .board ol { margin: 0; padding-left: 22px; }
+    .board li { padding: 3px 0; display: flex; justify-content: space-between; gap: 8px; }
+    .board li b { font-variant-numeric: tabular-nums; }
+    .board .me { text-align: center; font-weight: 600; margin-bottom: 8px; }
+    video.preview { max-height: 50vh; background: #000; }
+
+    /* Branding */
+    .logo { display: block; margin: 4px auto 0; max-width: 72%; max-height: 84px; object-fit: contain; }
+    .logo.small { max-height: 44px; margin-top: 0; }
+    body.has-bg::before {
+      content: ""; position: fixed; inset: 0; z-index: -2;
+      background: var(--bg-image) center / cover no-repeat;
+    }
+    body.has-bg::after {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background: linear-gradient(color-mix(in srgb, var(--bg) 70%, transparent), color-mix(in srgb, var(--bg) 92%, transparent) 45%);
+    }
+    body.has-bg { background-color: var(--bg); }
+  </style>
+</head>
+<body>
+<main>
+  <!-- Welcome -->
+  <section id="screen-welcome" hidden>
+    <img class="logo" data-logo alt="" hidden>
+    <p class="eyebrow" data-copy="headline"></p>
+    <h1 data-title></h1>
+    <p class="date" data-date></p>
+    <div class="reel" hidden></div>
+    <div class="film no-reel" aria-hidden="true"></div>
+    <p class="lead" data-copy="intro"></p>
+    <div class="developing" data-developing hidden></div>
+    <button class="poll-card" data-poll-slot hidden>
+      <span class="poll-tag">Live poll</span>
+      <b class="poll-q"></b>
+      <span class="poll-go">Vote</span>
+    </button>
+    <button class="poll-card" data-guestbook-slot hidden>
+      <span class="poll-tag">Guestbook</span>
+      <b class="poll-q">Leave a note</b>
+      <span class="poll-go">Write</span>
+    </button>
+    <div class="card">
+      <label class="field"><span data-copy="nameLabel"></span>
+        <input type="text" id="guest-name" autocomplete="name" maxlength="40" placeholder="Optional">
+      </label>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="start" data-copy="startButton">Open the camera</button>
+  </section>
+
+  <!-- Camera -->
+  <section id="screen-camera" hidden>
+    <img class="logo small" data-logo alt="" hidden>
+    <p class="eyebrow" data-title></p>
+    <div class="film" aria-hidden="true"></div>
+    <div id="challenge-box" hidden>
+      <p class="chips-label">Photo challenge · optional</p>
+      <div class="chips" id="challenge-chips"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="shutter-wrap">
+      <label class="shutter" for="file-input" aria-label="Take a photo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="4"/></svg>
+      </label>
+      <input type="file" id="file-input" class="visually-hidden" accept="image/*" capture="environment">
+    </div>
+    <div>
+      <p class="count" id="left-count"></p>
+      <p class="count-label" id="left-label"></p>
+    </div>
+    <label class="mini-btn" id="clip-btn" for="clip-input" hidden>🎬 Record a <span id="clip-secs">10</span>-second clip</label>
+    <input type="file" id="clip-input" class="visually-hidden" accept="video/*" capture="environment">
+    <div class="spacer"></div>
+    <button class="poll-card" data-poll-slot hidden>
+      <span class="poll-tag">Live poll</span>
+      <b class="poll-q"></b>
+      <span class="poll-go">Vote</span>
+    </button>
+    <p class="lead" style="font-size:14px">Tap the shutter to take a photo.</p>
+  </section>
+
+  <!-- Review -->
+  <section id="screen-review" hidden>
+    <p class="eyebrow">Nice shot</p>
+    <img class="preview" id="preview" alt="Your photo">
+    <video class="preview" id="preview-video" playsinline muted loop autoplay hidden></video>
+    <div id="look-box" hidden>
+      <p class="chips-label">Pick a look</p>
+      <div class="chips" id="look-chips"></div>
+    </div>
+    <p class="status" id="status" role="status"></p>
+    <div class="spacer"></div>
+    <button class="btn" id="keep">Add to the album</button>
+    <button class="btn secondary" id="retake">Retake</button>
+  </section>
+
+  <!-- Done -->
+  <section id="screen-done" hidden>
+    <div class="spacer"></div>
+    <img class="logo" data-logo alt="" hidden>
+    <div class="heart" data-copy="doneIcon"></div>
+    <h2 data-copy="doneTitle"></h2>
+    <p class="lead" data-copy="doneText"></p>
+    <div class="reel" hidden></div>
+    <div class="developing" data-developing hidden></div>
+    <p class="lead" data-title style="font-family:var(--serif);font-size:22px;font-style:italic"></p>
+    <div class="spacer"></div>
+    <button class="poll-card" data-poll-slot hidden>
+      <span class="poll-tag">Live poll</span>
+      <b class="poll-q"></b>
+      <span class="poll-go">Vote</span>
+    </button>
+    <button class="poll-card" data-guestbook-slot hidden>
+      <span class="poll-tag">Guestbook</span>
+      <b class="poll-q">Leave a note</b>
+      <span class="poll-go">Write</span>
+    </button>
+    <div class="cta" hidden>
+      <p class="cta-text"></p>
+      <a class="btn cta-btn" target="_blank" rel="noopener"></a>
+    </div>
+    <a class="btn secondary" id="album-link" href="album.html" hidden>See the album</a>
+    <a class="btn secondary" id="slideshow-link" href="slideshow.html">Watch the live slideshow</a>
+  </section>
+
+  <!-- Live poll -->
+  <section id="screen-poll" hidden>
+    <p class="eyebrow">Live poll</p>
+    <h2 id="poll-question"></h2>
+    <p class="poll-verdict" id="poll-verdict" hidden></p>
+    <div class="poll-options" id="poll-body"></div>
+    <p class="poll-total" id="poll-total"></p>
+    <div class="board" id="poll-board" hidden></div>
+    <p class="status" id="poll-status" role="status"></p>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="poll-next" hidden>Next poll</button>
+    <button class="btn secondary" id="poll-back">Back</button>
+  </section>
+
+  <!-- Guestbook -->
+  <section id="screen-guestbook" hidden>
+    <p class="eyebrow">Guestbook</p>
+    <h2 data-title></h2>
+    <div class="card">
+      <textarea id="gb-text" maxlength="280" rows="4" placeholder="Write a note…"></textarea>
+      <p class="gb-count" id="gb-count">0 / 280</p>
+    </div>
+    <p class="status" id="gb-status" role="status"></p>
+    <button class="btn" id="gb-send">Sign the guestbook</button>
+    <div class="messages" id="gb-list"></div>
+    <div class="spacer"></div>
+    <button class="btn secondary" id="gb-back">Back</button>
+  </section>
+
+  <!-- Missing / closed / offline -->
+  <section id="screen-message" hidden>
+    <div class="spacer"></div>
+    <div class="heart">♥</div>
+    <h2 id="message-title"></h2>
+    <p class="lead" id="message-text"></p>
+    <div class="spacer"></div>
+    <button class="poll-card" data-poll-slot hidden>
+      <span class="poll-tag">Live poll</span>
+      <b class="poll-q"></b>
+      <span class="poll-go">Vote</span>
+    </button>
+    <button class="poll-card" data-guestbook-slot hidden>
+      <span class="poll-tag">Guestbook</span>
+      <b class="poll-q">Leave a note</b>
+      <span class="poll-go">Write</span>
+    </button>
+    <div class="cta" data-closed hidden>
+      <p class="cta-text"></p>
+      <a class="btn cta-btn" target="_blank" rel="noopener"></a>
+    </div>
+    <button class="btn secondary" id="message-retry" hidden onclick="location.reload()">Try again</button>
+  </section>
+</main>
+
+<script>
+  document.documentElement.classList.add('loading');
+  let CONFIG = null;
+  const MAX_PIXELS = 2400;
+  const JPEG_QUALITY = 0.88;
+  const STORE_KEY = 'wedcam-v1:' + Camera.eventId;
+  const $ = (id) => document.getElementById(id);
+  const screens = ['welcome', 'camera', 'review', 'done', 'message', 'poll', 'guestbook'];
+
+  let state = load();
+  let pendingFile = null;
+  let pendingUrl = null;
+
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (s && typeof s.used === 'number') return s;
+    } catch (e) {}
+    return { used: 0, name: '', started: false };
+  }
+  // A random ID for this phone, so quiz answers can be added up for the leaderboard.
+  if (!state.gid) { state.gid = Math.random().toString(36).slice(2, 10); }
+  state.clipsUsed = state.clipsUsed || 0;
+  state.challengesDone = state.challengesDone || [];
+  const features = () => (CONFIG && CONFIG.features) || {};
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function show(name) {
+    screens.forEach((s) => { $('screen-' + s).hidden = s !== name; });
+    window.scrollTo(0, 0);
+  }
+  function currentScreen() {
+    return screens.find((s) => !$('screen-' + s).hidden);
+  }
+
+  function render() {
+    document.title = CONFIG.title + ' · LK Moments';
+    Camera.applyCopy(CONFIG);
+    document.querySelectorAll('.film').forEach((film) => {
+      film.innerHTML = '';
+      for (let i = 0; i < CONFIG.shots; i++) {
+        const f = document.createElement('div');
+        f.className = 'frame' + (i < state.used ? ' used' : '');
+        film.appendChild(f);
+      }
+    });
+    const left = CONFIG.shots - state.used;
+    $('left-count').textContent = left;
+    $('left-label').textContent = left === 1 ? 'shot left' : 'shots left';
+    $('retake').hidden = !CONFIG.allowRetake;
+    renderFeatures();
+  }
+
+  // ---- Per-event extras: challenges, clips, guestbook, developing, album ----
+  function whenText(t) {
+    const d = new Date(t);
+    const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    if (d.toDateString() === new Date().toDateString()) return 'at ' + time;
+    return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) + ' at ' + time;
+  }
+
+  function renderFeatures() {
+    const f = features();
+    const list = f.challenges || [];
+    $('challenge-box').hidden = !list.length;
+    const chips = $('challenge-chips');
+    chips.innerHTML = '';
+    list.forEach((c) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (state.challenge === c.id ? ' on' : '') + (state.challengesDone.includes(c.id) ? ' done' : '');
+      b.textContent = c.text;
+      b.onclick = () => { state.challenge = state.challenge === c.id ? '' : c.id; save(); renderFeatures(); };
+      chips.appendChild(b);
+    });
+    $('clip-btn').hidden = !(f.video && state.clipsUsed < (f.clips || 1));
+    $('clip-secs').textContent = f.clipSeconds || 10;
+    document.querySelectorAll('[data-guestbook-slot]').forEach((b) => {
+      b.hidden = !f.guestbook;
+      b.querySelector('.poll-q').textContent = state.signed ? 'Read the guestbook' : 'Leave a note for ' + CONFIG.title;
+      b.querySelector('.poll-go').textContent = state.signed ? 'Open' : 'Write';
+    });
+    document.querySelectorAll('[data-developing]').forEach((el) => {
+      el.hidden = !f.developing;
+      if (f.developing) el.textContent = "📸 Photos are developing, like real film. They'll be ready " + whenText(f.develop.until) + '.';
+    });
+    $('album-link').hidden = !(f.album && !f.developing);
+    $('album-link').href = Camera.pageUrl('album.html');
+  }
+
+  // The event's "after your last photo" message and button, if it has a link.
+  let ctaReady = false;
+  function setupCta(ev) {
+    const words = Camera.copyFor(ev);
+    const url = String(words.ctaUrl || '').trim();
+    ctaReady = /^https?:\/\/\S+$/i.test(url);
+    document.querySelectorAll('.cta').forEach((box) => {
+      box.hidden = !ctaReady;
+      if (!ctaReady) return;
+      box.querySelector('.cta-text').textContent = words.ctaText || '';
+      box.querySelector('.cta-text').hidden = !words.ctaText;
+      const button = box.querySelector('.cta-btn');
+      button.href = url;
+      button.textContent = words.ctaButton || 'Learn more';
+    });
+  }
+
+  function showMessage(title, text, retry) {
+    $('message-title').textContent = title;
+    $('message-text').textContent = text;
+    $('message-retry').hidden = !retry;
+    // Only the "camera is closed" message gets the button, not errors.
+    document.querySelectorAll('.cta[data-closed]').forEach((box) => { box.hidden = !ctaReady || retry || !CONFIG; });
+    show('message');
+  }
+
+  function route() {
+    render();
+    if (!CONFIG.open && state.used < CONFIG.shots) {
+      showMessage('This camera is closed', Camera.copyFor(CONFIG).closed);
+    }
+    else if (CONFIG.full && state.used < CONFIG.shots && !pendingFile) {
+      showMessage('The album is full', "It's holding all the photos it can. Thanks for being part of it!");
+    }
+    else if (state.used >= CONFIG.shots) show('done');
+    else if (state.started) show('camera');
+    else show('welcome');
+  }
+
+  $('guest-name').value = state.name || '';
+  $('start').addEventListener('click', () => {
+    state.name = $('guest-name').value.trim();
+    state.started = true;
+    save();
+    route();
+  });
+
+  $('file-input').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    pendingClip = null;
+    $('preview-video').hidden = true;
+    $('preview-video').removeAttribute('src');
+    $('preview').hidden = false;
+    $('keep').disabled = false;
+    pendingFile = file;
+    if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    pendingUrl = URL.createObjectURL(file);
+    $('preview').src = pendingUrl;
+    setStatus('');
+    setBusy(false);
+    renderLooks();
+    updatePreview();
+    show('review');
+    if (!CONFIG.allowRetake) upload();
+  });
+
+  $('retake').addEventListener('click', () => {
+    pendingFile = null;
+    show('camera');
+    $('file-input').click();
+  });
+
+  $('keep').addEventListener('click', upload);
+
+  function setStatus(msg, isError) {
+    $('status').textContent = msg;
+    $('status').classList.toggle('error', !!isError);
+  }
+  function setBusy(busy) {
+    $('keep').disabled = busy;
+    $('retake').disabled = busy;
+    $('keep').innerHTML = busy ? '<span class="spinner"></span> Developing…' : 'Add to the album';
+  }
+
+  // With hundreds of guests at once Google can be slow or briefly refuse, so a failed send is
+  // retried a few times (spaced out, with a little randomness) before asking the guest.
+  const RETRY_DELAYS = [2000, 5000, 10000];
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function sendWithRetry(sendOnce) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await sendOnce();
+      } catch (err) {
+        if (err.final || attempt >= RETRY_DELAYS.length) throw err;
+        setStatus('Busy moment. Still sending…');
+        await wait(RETRY_DELAYS[attempt] * (0.75 + Math.random() * 0.5));
+      }
+    }
+  }
+
+  async function upload() {
+    if (!pendingFile && !pendingClip) return;
+    setBusy(true);
+    const clip = pendingClip;
+    setStatus(clip ? 'Sending your clip… (big files take a moment)' : 'Sending your photo…');
+    try {
+      if (clip) {
+        const dataUrl = await readClip(clip);
+        await sendWithRetry(() => Camera.uploadClip(dataUrl, state.name, state.clipsUsed + 1));
+        state.clipsUsed += 1;
+      } else {
+        const dataUrl = await compress();
+        const challenge = state.challenge || '';
+        await sendWithRetry(() => Camera.uploadPhoto(dataUrl, state.name, state.used + 1, challenge));
+        state.used += 1;
+        if (challenge && !state.challengesDone.includes(challenge)) state.challengesDone.push(challenge);
+        state.challenge = '';
+      }
+      save();
+      pendingFile = null;
+      pendingClip = null;
+      setBusy(false);
+      route();
+      if (state.used >= CONFIG.shots) refreshPhotos();
+    } catch (err) {
+      console.error(err);
+      setBusy(false);
+      if (err.message === 'album-full' || /closed/i.test(err.message)) {
+        pendingFile = null;
+        pendingClip = null;
+        if (err.message === 'album-full') CONFIG.full = true; else CONFIG.open = false;
+        route();
+        return;
+      }
+      $('keep').textContent = 'Try again';
+      setStatus("Couldn't send. Check your signal and try again.", true);
+    }
+  }
+
+  // ---- Film looks and the date stamp, drawn onto the photo before it's sent ----
+  const LOOK_NAMES = { none: 'Original', film: 'Film', bw: 'B&W', vintage: 'Vintage' };
+  const chosenLook = () => (features().look === 'choose' ? (state.look || 'none') : (features().look || 'none'));
+
+  function renderLooks() {
+    const choose = features().look === 'choose';
+    $('look-box').hidden = !choose;
+    if (!choose) return;
+    const chips = $('look-chips');
+    chips.innerHTML = '';
+    Object.keys(LOOK_NAMES).forEach((k) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (chosenLook() === k ? ' on' : '');
+      b.textContent = LOOK_NAMES[k];
+      b.onclick = () => { state.look = k; save(); renderLooks(); updatePreview(); };
+      chips.appendChild(b);
+    });
+  }
+
+  function loadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Could not read photo'));
+      img.src = url;
+    });
+  }
+
+  async function renderPhoto(maxPixels) {
+    const img = await loadImage(pendingUrl);
+    const scale = Math.min(1, maxPixels / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.naturalWidth * scale);
+    canvas.height = Math.round(img.naturalHeight * scale);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    applyLook(ctx, canvas.width, canvas.height, chosenLook());
+    if (features().stamp) drawStamp(ctx, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  async function compress() {
+    return (await renderPhoto(MAX_PIXELS)).toDataURL('image/jpeg', JPEG_QUALITY);
+  }
+
+  let previewToken = 0;
+  async function updatePreview() {
+    const f = features();
+    if (!pendingFile || ((!f.look || f.look === 'none' || chosenLook() === 'none') && !f.stamp)) {
+      if (pendingUrl) $('preview').src = pendingUrl;
+      return;
+    }
+    const token = ++previewToken;
+    const canvas = await renderPhoto(1000);
+    if (token === previewToken) $('preview').src = canvas.toDataURL('image/jpeg', 0.85);
+  }
+
+  function applyLook(ctx, w, h, look) {
+    if (!look || look === 'none') return;
+    const image = ctx.getImageData(0, 0, w, h);
+    const d = image.data;
+    const cx = w / 2, cy = h / 2, far = cx * cx + cy * cy;
+    const grain = look === 'bw' ? 16 : 11;
+    for (let y = 0; y < h; y++) {
+      const dy2 = (y - cy) * (y - cy);
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        let r = d[i], g = d[i + 1], b = d[i + 2];
+        if (look === 'film') {
+          // Warm, slightly faded blacks, like drugstore film.
+          r = 16 + r * 0.97; g = 10 + g * 0.93; b = 6 + b * 0.84;
+        } else if (look === 'bw') {
+          const l = (0.3 * r + 0.59 * g + 0.11 * b - 128) * 1.18 + 128;
+          r = g = b = l;
+        } else if (look === 'vintage') {
+          const sr = 0.393 * r + 0.769 * g + 0.189 * b, sg = 0.349 * r + 0.686 * g + 0.168 * b, sb = 0.272 * r + 0.534 * g + 0.131 * b;
+          r = 26 + (r * 0.35 + sr * 0.65) * 0.86; g = 20 + (g * 0.35 + sg * 0.65) * 0.84; b = 14 + (b * 0.35 + sb * 0.65) * 0.78;
+        }
+        const v = 1 - 0.38 * ((x - cx) * (x - cx) + dy2) / far;
+        const n = (Math.random() - 0.5) * grain;
+        d[i] = r * v + n; d[i + 1] = g * v + n; d[i + 2] = b * v + n;
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+  }
+
+  // The orange date in the corner, like a disposable camera prints: '26 10 20
+  function drawStamp(ctx, w, h) {
+    const d = new Date();
+    const text = "'" + String(d.getFullYear()).slice(2) + ' ' + String(d.getMonth() + 1).padStart(2, '0') + ' ' + String(d.getDate()).padStart(2, '0');
+    const size = Math.round(Math.min(w, h) * 0.045);
+    ctx.save();
+    ctx.font = 'bold ' + size + 'px "Courier New", Courier, monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.shadowColor = 'rgba(255, 110, 20, .85)';
+    ctx.shadowBlur = size * 0.45;
+    ctx.fillStyle = '#ffa53d';
+    ctx.fillText(text, w - size * 1.2, h - size * 0.9);
+    ctx.restore();
+  }
+
+  // ---- Video clips ----
+  let pendingClip = null;
+  const CLIP_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+
+  function clipDuration(url) {
+    return new Promise((resolve) => {
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.onloadedmetadata = () => resolve(v.duration);
+      v.onerror = () => resolve(0);
+      v.src = url;
+      setTimeout(() => resolve(0), 4000);
+    });
+  }
+
+  function readClip(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const type = CLIP_TYPES.includes(file.type) ? file.type : 'video/mp4';
+        resolve(String(reader.result).replace(/^data:[^;]*;base64,/, 'data:' + type + ';base64,'));
+      };
+      reader.onerror = () => reject(new Error('Could not read clip'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  $('clip-input').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const f = features();
+    pendingFile = null;
+    pendingClip = file;
+    if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    pendingUrl = URL.createObjectURL(file);
+    $('preview').hidden = true;
+    $('look-box').hidden = true;
+    const video = $('preview-video');
+    video.hidden = false;
+    video.src = pendingUrl;
+    setBusy(false);
+    setStatus('');
+    show('review');
+    const secs = await clipDuration(pendingUrl);
+    let problem = '';
+    if (file.type && !CLIP_TYPES.includes(file.type)) problem = "This phone's video format isn't supported. Try a photo instead.";
+    else if (secs > (f.clipSeconds || 10) + 0.75) problem = 'That clip is ' + Math.round(secs) + ' seconds. Keep it under ' + (f.clipSeconds || 10) + '.';
+    else if (file.size > 26 * 1024 * 1024) problem = 'That clip is too big to send. Try a shorter one.';
+    if (problem) {
+      setStatus(problem, true);
+      $('keep').disabled = true;
+    }
+  });
+
+  // ---- Reel of photos other guests have taken ----
+  const reels = [...document.querySelectorAll('.reel')];
+  reels.forEach((r) => {
+    r.innerHTML = '<div class="reel-photo"><img alt=""><img alt="">' +
+      '<span class="reel-play" hidden>▶ clip</span><button class="reel-heart" hidden>♥ <span></span></button></div><p class="reel-cap"></p>';
+    r.querySelector('.reel-heart').addEventListener('click', () => toggleHeart(r));
+  });
+
+  function heartKey(id) { return 'wedcam-heart:' + Camera.eventId + ':' + id; }
+  function liked(id) { try { return !!localStorage.getItem(heartKey(id)); } catch (e) { return false; } }
+
+  function toggleHeart(reel) {
+    const photo = reelPhotos.find((p) => p.id === reel.dataset.id);
+    if (!photo || liked(photo.id)) return;
+    try { localStorage.setItem(heartKey(photo.id), '1'); } catch (e) {}
+    photo.h = (photo.h || 0) + 1;
+    reels.forEach((r) => { if (r.dataset.id === photo.id) showHeart(r, photo); });
+    Camera.heart(photo.id).catch(() => {});
+  }
+
+  function showHeart(reel, photo) {
+    const btn = reel.querySelector('.reel-heart');
+    btn.hidden = !features().hearts;
+    btn.classList.toggle('on', liked(photo.id));
+    btn.querySelector('span').textContent = photo.h ? photo.h : '';
+    reel.querySelector('.reel-play').hidden = !photo.v;
+  }
+  let reelPhotos = [];
+  let reelIdx = -1;
+
+  function showReelPhoto(reel, photo) {
+    const imgs = [...reel.querySelectorAll('img')];
+    const back = imgs.find((i) => !i.classList.contains('on')) || imgs[0];
+    const swap = () => {
+      imgs.forEach((i) => i.classList.toggle('on', i === back));
+      reel.querySelector('.reel-cap').textContent = photo.name ? 'by ' + photo.name : '';
+      reel.dataset.id = photo.id;
+      showHeart(reel, photo);
+    };
+    const url = Camera.photoUrl(photo, 900);
+    back.onload = swap;
+    back.onerror = () => {
+      if (!photo.src && back.dataset.fallback !== photo.id) {
+        back.dataset.fallback = photo.id;
+        back.src = Camera.photoFallbackUrl(photo, 900);
+      }
+    };
+    if (back.src === url && back.complete && back.naturalWidth) swap();
+    else back.src = url;
+  }
+
+  function nextReel() {
+    if (!reelPhotos.length || document.hidden) return;
+    reelIdx = (reelIdx + 1) % reelPhotos.length;
+    reels.forEach((r) => showReelPhoto(r, reelPhotos[reelIdx]));
+  }
+
+  async function refreshPhotos(initial) {
+    if (!CONFIG || !CONFIG.showGuestPhotos || document.hidden) return;
+    try {
+      const photos = initial || await Camera.listPhotos();
+      const hadNew = photos.length && (!reelPhotos.length || photos[0].id !== reelPhotos[0].id);
+      reelPhotos = photos;
+      const has = reelPhotos.length > 0;
+      reels.forEach((r) => r.hidden = !has);
+      document.querySelectorAll('.no-reel').forEach((el) => el.hidden = has);
+      if (hadNew) { reelIdx = -1; nextReel(); }
+    } catch (err) {
+      console.warn('Could not load photos', err);
+    }
+  }
+
+  // ---- Live polls ----
+  let polls = [];
+  let pollShown = null;
+  let pollRefresh = null;
+
+  function voteKey(id) { return 'wedcam-vote:' + Camera.eventId + ':' + id; }
+  // A choice index, or for a word cloud the word this phone sent.
+  function myVote(id) {
+    try {
+      const v = localStorage.getItem(voteKey(id));
+      if (v === null) return null;
+      return v.indexOf('w:') === 0 ? v.slice(2) : Number(v);
+    } catch (e) { return null; }
+  }
+  let board = [];
+  // Open polls, plus answered quizzes whose answer is now out (so voters can see how they did).
+  const livePolls = () => polls.filter((p) => (p.open && !p.reveal) || (p.reveal && myVote(p.id) !== null));
+
+  function setPolls(list) {
+    polls = list;
+    const live = livePolls();
+    document.querySelectorAll('[data-poll-slot]').forEach((slot) => {
+      slot.hidden = !live.length;
+      if (!live.length) return;
+      // The first one this phone hasn't answered yet, else the first.
+      const p = live.find((x) => myVote(x.id) === null) || live[0];
+      slot.dataset.poll = p.id;
+      slot.querySelector('.poll-q').textContent = live.length > 1 ? p.question + '  (+' + (live.length - 1) + ' more)' : p.question;
+      slot.querySelector('.poll-tag').textContent = p.type === 'words' ? 'Word cloud' : (p.quiz ? 'Quiz' : 'Live poll');
+      slot.querySelector('.poll-go').textContent = p.reveal ? 'See answer' : (myVote(p.id) === null ? 'Vote' : 'Results');
+    });
+    if (pollShown) renderPoll();
+  }
+
+  async function refreshPolls() {
+    if (document.hidden || !CONFIG) return;
+    try { setPolls(await Camera.listPolls()); } catch (e) {}
+  }
+
+  // While a poll is open on screen its results update every ~8 seconds.
+  function pollLoop() {
+    clearTimeout(pollRefresh);
+    pollRefresh = setTimeout(async () => {
+      if (!pollShown) return;
+      await refreshPolls();
+      pollLoop();
+    }, jitter(8000));
+  }
+
+  function openPoll(id) {
+    pollShown = id;
+    $('poll-status').textContent = '';
+    renderPoll();
+    show('poll');
+    pollLoop();
+  }
+
+  function closePoll() {
+    pollShown = null;
+    clearTimeout(pollRefresh);
+    route();
+  }
+
+  function renderPoll() {
+    const p = polls.find((x) => x.id === pollShown);
+    if (!p) { closePoll(); return; }
+    // Don't wipe a word someone is halfway through typing when results refresh.
+    const typing = document.querySelector('.word-form input');
+    if (typing && typing.value && p.type === 'words' && p.open && myVote(p.id) === null) return;
+    $('poll-question').textContent = p.question;
+    const mine = myVote(p.id);
+    const body = $('poll-body');
+    body.innerHTML = '';
+    const revealed = p.reveal && p.correct !== null && p.correct !== undefined;
+    const verdict = $('poll-verdict');
+    verdict.hidden = !(revealed && mine !== null);
+    if (revealed && mine !== null) {
+      verdict.textContent = mine === p.correct ? 'You got it! 🎉' : 'Not quite. The answer was ' + p.options[p.correct] + '.';
+    }
+    renderBoard(p, revealed);
+    if (p.type === 'words') {
+      renderWords(p, mine, body);
+    } else if (mine === null && p.open && !p.reveal) {
+      p.options.forEach((text, i) => {
+        const b = document.createElement('button');
+        b.className = 'poll-option';
+        b.textContent = text;
+        b.onclick = () => castVote(p, i);
+        body.appendChild(b);
+      });
+      $('poll-total').textContent = '';
+    } else {
+      p.options.forEach((text, i) => {
+        const pct = p.total ? Math.round((p.counts[i] / p.total) * 100) : 0;
+        const r = document.createElement('div');
+        r.className = 'poll-result' + (i === mine ? ' mine' : '') + (revealed ? (i === p.correct ? ' right' : ' wrong') : '');
+        r.innerHTML = '<div class="fill"></div><div class="row"><span></span><b></b></div>';
+        r.querySelector('span').textContent = (revealed && i === p.correct ? '✅  ' : (i === mine ? '✓ ' : '')) + text;
+        r.querySelector('b').textContent = pct + '%';
+        body.appendChild(r);
+        requestAnimationFrame(() => { r.querySelector('.fill').style.width = pct + '%'; });
+        setTimeout(() => { r.querySelector('.fill').style.width = pct + '%'; }, 50);
+      });
+      $('poll-total').textContent = p.total + (p.total === 1 ? ' vote' : ' votes') +
+        (revealed ? '' : p.quiz ? ' · the answer is revealed soon' : (p.open ? ' · updating live' : ' · voting closed'));
+    }
+    const others = livePolls().filter((x) => x.id !== p.id);
+    $('poll-next').hidden = !others.length;
+    $('poll-next').onclick = () => openPoll((others.find((x) => myVote(x.id) === null) || others[0]).id);
+  }
+
+  function renderWords(p, mine, body) {
+    if (mine === null && p.open) {
+      const form = document.createElement('form');
+      form.className = 'word-form';
+      form.innerHTML = '<input type="text" maxlength="24" placeholder="A word or two" autocomplete="off" enterkeyhint="send"><button class="btn">Send</button>';
+      form.onsubmit = (e) => { e.preventDefault(); castVote(p, form.querySelector('input').value); };
+      body.appendChild(form);
+      $('poll-total').textContent = p.total ? p.total + ' answers so far' : 'Be the first to answer';
+      return;
+    }
+    const cloud = document.createElement('div');
+    cloud.className = 'word-cloud';
+    const words = (p.words || []).slice(0, 40);
+    const top = words.length ? words[0][1] : 1;
+    // Biggest words in the middle, smaller ones fanning out to both sides.
+    const placed = [];
+    words.forEach((w, i) => { if (i % 2) placed.push(w); else placed.unshift(w); });
+    placed.forEach((w) => {
+      const span = document.createElement('span');
+      span.textContent = w[0];
+      span.style.fontSize = Math.round(16 + 30 * (w[1] / top)) + 'px';
+      if (mine && w[0] === mine) span.className = 'mine';
+      cloud.appendChild(span);
+    });
+    body.appendChild(cloud);
+    $('poll-total').textContent = p.total + (p.total === 1 ? ' answer' : ' answers') + (p.open ? ' · updating live' : '');
+  }
+
+  // After a quiz answer is revealed: this phone's score and the top guests.
+  function renderBoard(p, revealed) {
+    const box = $('poll-board');
+    const quizzes = polls.filter((x) => x.reveal && x.correct !== null && x.correct !== undefined);
+    box.hidden = !(revealed && quizzes.length);
+    if (box.hidden) return;
+    box.innerHTML = '';
+    const answered = quizzes.filter((x) => myVote(x.id) !== null);
+    if (answered.length) {
+      const me = document.createElement('p');
+      me.className = 'me';
+      me.textContent = 'Your score: ' + answered.filter((x) => myVote(x.id) === x.correct).length + ' of ' + quizzes.length;
+      box.appendChild(me);
+    }
+    if (board.length) {
+      const h = document.createElement('h3');
+      h.textContent = 'Leaderboard';
+      const ol = document.createElement('ol');
+      board.slice(0, 5).forEach((g) => {
+        const li = document.createElement('li');
+        const name = document.createElement('span');
+        name.textContent = g.name;
+        const score = document.createElement('b');
+        score.textContent = g.right + '/' + g.of;
+        li.append(name, score);
+        ol.appendChild(li);
+      });
+      box.append(h, ol);
+    }
+  }
+
+  async function castVote(p, i) {
+    const isWords = p.type === 'words';
+    if (isWords) {
+      i = String(i || '').trim();
+      if (!i) return;
+    }
+    document.querySelectorAll('.poll-option, .word-form input, .word-form button').forEach((b) => { b.disabled = true; });
+    $('poll-status').textContent = 'Sending your vote…';
+    $('poll-status').classList.remove('error');
+    try {
+      let updated;
+      for (let attempt = 0; ; attempt++) {
+        try { updated = await Camera.vote(p.id, i, state.gid, state.name); break; } catch (err) {
+          if (err.final || attempt >= 2) throw err;
+          await wait((attempt + 1) * 2000 * (0.75 + Math.random() * 0.5));
+        }
+      }
+      try { localStorage.setItem(voteKey(p.id), isWords ? 'w:' + i.toLowerCase().replace(/\s+/g, ' ') : String(i)); } catch (e) {}
+      $('poll-status').textContent = 'Thanks for voting!';
+      setPolls(updated);
+    } catch (err) {
+      $('poll-status').textContent = err.message || "Couldn't send. Try again.";
+      $('poll-status').classList.add('error');
+      document.querySelectorAll('.poll-option, .word-form input, .word-form button').forEach((b) => { b.disabled = false; });
+    }
+  }
+
+  document.querySelectorAll('[data-poll-slot]').forEach((slot) => {
+    slot.addEventListener('click', () => openPoll(slot.dataset.poll));
+  });
+
+  // ---- Guestbook ----
+  let messages = [];
+
+  function openGuestbook() {
+    $('gb-status').textContent = '';
+    $('gb-status').classList.remove('error');
+    renderGuestbook();
+    show('guestbook');
+  }
+
+  function renderGuestbook() {
+    const list = $('gb-list');
+    list.innerHTML = '';
+    messages.slice(0, 60).forEach((m) => {
+      const div = document.createElement('div');
+      div.className = 'message';
+      const text = document.createElement('p');
+      text.textContent = m.text;
+      const who = document.createElement('b');
+      who.textContent = '— ' + (m.name || 'A guest');
+      div.append(text, who);
+      list.appendChild(div);
+    });
+  }
+
+  $('gb-text').addEventListener('input', () => { $('gb-count').textContent = $('gb-text').value.length + ' / 280'; });
+  $('gb-send').addEventListener('click', async () => {
+    const text = $('gb-text').value.trim();
+    if (!text) return;
+    $('gb-send').disabled = true;
+    $('gb-status').classList.remove('error');
+    $('gb-status').textContent = 'Sending…';
+    try {
+      let sent;
+      for (let attempt = 0; ; attempt++) {
+        try { sent = await Camera.sendMessage(state.name, text); break; } catch (err) {
+          if (err.final || attempt >= 2) throw err;
+          await wait((attempt + 1) * 2000 * (0.75 + Math.random() * 0.5));
+        }
+      }
+      messages.unshift(sent);
+      $('gb-text').value = '';
+      $('gb-count').textContent = '0 / 280';
+      state.signed = true;
+      save();
+      $('gb-status').textContent = 'Thanks! Your note is in the guestbook.';
+      renderGuestbook();
+      renderFeatures();
+    } catch (err) {
+      $('gb-status').textContent = err.message && err.final ? err.message : "Couldn't send. Try again.";
+      $('gb-status').classList.add('error');
+    }
+    $('gb-send').disabled = false;
+  });
+  $('gb-back').addEventListener('click', () => route());
+  document.querySelectorAll('[data-guestbook-slot]').forEach((b) => b.addEventListener('click', openGuestbook));
+  $('poll-back').addEventListener('click', closePoll);
+
+  // The server's list, plus any note this phone just sent that it doesn't have yet.
+  function mergeMessages(list) {
+    const fresh = list || [];
+    const mine = messages.filter((m) => !fresh.some((x) => x.id === m.id) && Date.now() - m.t < 60000);
+    messages = mine.concat(fresh);
+  }
+
+  // ---- Background refresh ----
+  // One request brings the event (open / full), photos and polls together. Phones refresh
+  // roughly every 45 seconds, at random times so a room full of them doesn't hit the server in
+  // step, only while the page is on screen, and back off if the server is struggling.
+  const REFRESH_MS = 45000;
+  let refreshDelay = REFRESH_MS;
+  let refreshTimer = null;
+  let lastRefresh = Date.now();
+  const jitter = (ms) => ms * (0.7 + Math.random() * 0.6);
+
+  async function refreshAll() {
+    lastRefresh = Date.now();
+    try {
+      const { event, photos, polls: list, messages: notes, board: top } = await Camera.loadEvent();
+      const was = CONFIG;
+      CONFIG = Object.assign({}, CONFIG, event);
+      board = top || [];
+      mergeMessages(notes);
+      setPolls(list || []);
+      renderFeatures();
+      refreshPhotos(photos);
+      const onCamera = ['camera', 'review'].indexOf(currentScreen()) >= 0;
+      if (!pollShown && !onCamera && currentScreen() !== 'guestbook' && (was.open !== CONFIG.open || was.full !== CONFIG.full)) route();
+      if (currentScreen() === 'guestbook') renderGuestbook();
+      refreshDelay = REFRESH_MS;
+    } catch (err) {
+      refreshDelay = Math.min(refreshDelay * 2, 4 * 60000);
+    }
+  }
+
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(async () => {
+      if (!document.hidden) await refreshAll();
+      scheduleRefresh();
+    }, jitter(refreshDelay));
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && CONFIG && Date.now() - lastRefresh > 30000) { refreshAll(); scheduleRefresh(); }
+  });
+
+  async function loadWithRetry() {
+    for (let attempt = 0; ; attempt++) {
+      try { return await Camera.loadEvent(); } catch (err) {
+        if (err.code !== 'network' || attempt >= 2) throw err;
+        await wait(jitter(2500 * (attempt + 1)));
+      }
+    }
+  }
+
+  async function init() {
+    try {
+      const { event, photos, polls: firstPolls, messages: notes, board: top } = await loadWithRetry();
+      CONFIG = event;
+      board = top || [];
+      mergeMessages(notes);
+      setPolls(firstPolls || []);
+      Camera.applyBranding(CONFIG, { background: 'phone' });
+      setupCta(CONFIG);
+      $('slideshow-link').href = Camera.pageUrl('slideshow.html');
+      route();
+      refreshPhotos(photos);
+      setInterval(nextReel, 4000);
+      scheduleRefresh();
+    } catch (err) {
+      if (err.code === 'missing' || err.code === 'not-found') {
+        showMessage('Camera not found', 'Scan the QR code at your event to open its camera.');
+      } else {
+        showMessage("Can't connect", 'Check your signal and try again.', true);
+      }
+    }
+    document.documentElement.classList.remove('loading');
+  }
+  init();
+</script>
+</body>
+</html>
