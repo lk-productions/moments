@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f4ef">
+  <meta name="robots" content="noindex">
+  <title>Event setup · LK Moments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&family=DM+Sans:wght@500;700&family=Playfair+Display:wght@600&family=Great+Vibes&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <script src="config.js?v=20261022a"></script>
+  <script src="shared.js?v=20261022a"></script>
+  <style>
+    /* LK Moments' own look: warm paper, ink, and a brass accent. The event's colors only appear in
+       the preview and the choices themselves. */
+    :root {
+      --paper: #f7f4ef; --card: #ffffff; --ink: #1d1b19; --muted: #6f6a63; --line: #e7e1d8;
+      --brass: #a5803f; --brass-soft: #f3ead9; --ok: #2f7d4f; --bad: #b04a3c;
+      --serif: "Cormorant Garamond", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; }
+    body { background: var(--paper); color: var(--ink); font: 15px/1.5 Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+
+    header.top {
+      position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 16px;
+      padding: max(12px, env(safe-area-inset-top)) 24px 12px; background: color-mix(in srgb, var(--paper) 94%, transparent);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+    .brand b { font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: .01em; }
+    .brand b span { color: var(--brass); }
+    .brand small { color: var(--muted); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+    .top .event { flex: 1; min-width: 0; text-align: center; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status { font-size: 13px; color: var(--muted); white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+    .status.saving::before { background: var(--brass); animation: pulse 1s infinite; }
+    .status.error::before { background: var(--bad); }
+    @keyframes pulse { 50% { opacity: .3; } }
+
+    .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr) 420px; gap: 28px; max-width: 1400px; margin: 0 auto; padding: 24px; align-items: start; }
+    nav.steps { position: sticky; top: 84px; display: flex; flex-direction: column; gap: 2px; }
+    nav.steps button {
+      display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; font-weight: 500; color: var(--muted);
+      background: none; border: 0; border-radius: 10px; padding: 9px 12px; cursor: pointer;
+    }
+    nav.steps button .n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 600; flex: none; }
+    nav.steps button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 0 var(--line); }
+    nav.steps button.on .n { border-color: var(--brass); background: var(--brass); color: #fff; }
+    nav.steps button.seen .n { border-color: var(--brass); color: var(--brass); }
+
+    main.step { min-width: 0; }
+    .step h1 { font-family: var(--serif); font-weight: 600; font-size: 40px; line-height: 1.05; margin: 4px 0 6px; }
+    .step .lead { color: var(--muted); margin: 0 0 22px; max-width: 60ch; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; }
+    .card h2 { margin: 0 0 4px; font-size: 16px; }
+    .card .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field > span { font-weight: 600; font-size: 14px; }
+    .field small { color: var(--muted); font-size: 12.5px; }
+    input[type=text], input[type=url], input[type=number], input[type=datetime-local], textarea, select {
+      font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 120px; }
+
+    .toggle { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+    .toggle:first-of-type { border-top: 0; padding-top: 0; }
+    .toggle input { appearance: none; -webkit-appearance: none; width: 42px; height: 24px; border-radius: 999px; background: #d9d3c9; position: relative; flex: none; cursor: pointer; transition: background .2s; margin-top: 1px; }
+    .toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .toggle input:checked { background: var(--brass); }
+    .toggle input:checked::after { transform: translateX(18px); }
+    .toggle b { display: block; font-weight: 600; }
+    .toggle small { color: var(--muted); font-size: 13px; }
+    .sub { margin: 4px 0 6px 54px; }
+
+    .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+    .seg button, .chip {
+      font: inherit; font-weight: 500; padding: 8px 14px; border-radius: 999px; cursor: pointer; border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+    }
+    .seg button.on, .chip.on { border-color: var(--brass); background: var(--brass-soft); font-weight: 600; }
+
+    .themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+    .theme { border: 2px solid transparent; border-radius: 14px; padding: 6px; background: none; cursor: pointer; font: inherit; text-align: center; }
+    .theme.on { border-color: var(--brass); }
+    .theme .sw { height: 64px; border-radius: 10px; display: grid; place-items: center; border: 1px solid rgba(0,0,0,.06); }
+    .theme .sw i { width: 56px; height: 16px; border-radius: 999px; }
+    .theme span { display: block; font-size: 13px; margin-top: 6px; font-weight: 500; }
+    .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .font { border: 2px solid var(--line); border-radius: 14px; padding: 14px 10px; background: var(--card); cursor: pointer; text-align: center; }
+    .font.on { border-color: var(--brass); background: var(--brass-soft); }
+    .font b { display: block; font-size: 26px; line-height: 1.1; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .font span { font-size: 12px; color: var(--muted); }
+
+    .upload { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+    .upload:first-of-type { border-top: 0; }
+    .upload .thumb { width: 120px; height: 80px; border-radius: 10px; border: 1px solid var(--line); background: #faf8f4 center / contain no-repeat; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+    .upload.dark .thumb { background-color: #222; }
+    .upload b { display: block; }
+    .upload small { color: var(--muted); font-size: 12.5px; display: block; margin: 2px 0 8px; }
+    .btn { font: inherit; font-weight: 600; font-size: 14px; padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .btn.brass { background: var(--brass); color: #fff; border-color: var(--brass); }
+    .btn.small { padding: 6px 12px; font-size: 13px; }
+    .btn[disabled] { opacity: .5; pointer-events: none; }
+    .list-item { display: flex; gap: 8px; margin-bottom: 8px; }
+    .list-item input { flex: 1; }
+    .x { border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 6px; }
+
+    .poll { border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; background: var(--paper); }
+    .poll .head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .poll .head select { width: auto; }
+    .poll .head .x { margin-left: auto; }
+
+    .nextbar { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 60px; }
+
+    aside.preview { position: sticky; top: 84px; }
+    .preview .tabs { display: flex; gap: 6px; margin-bottom: 12px; justify-content: center; }
+    .phone { width: 300px; height: 620px; margin: 0 auto; border-radius: 44px; background: #111; padding: 12px; box-shadow: 0 30px 60px rgba(0,0,0,.18); position: relative; overflow: hidden; }
+    .phone > div.screen { width: 276px; height: 596px; overflow: hidden; border-radius: 34px; }
+    .phone iframe { width: 390px; height: 812px; border: 0; border-radius: 34px; transform: scale(.7077); transform-origin: 0 0; background: #fff; }
+    .phone .glass, .tv .glass { position: absolute; inset: 0; z-index: 2; } /* look, don't touch */
+    .tv { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,.2); border: 8px solid #222; }
+    .tv iframe { width: 1280px; height: 720px; border: 0; transform-origin: 0 0; }
+    .preview p { text-align: center; color: var(--muted); font-size: 12.5px; margin: 12px 0 0; }
+
+    .done-card { text-align: center; padding: 28px; }
+    .done-card .big { font-family: var(--serif); font-size: 34px; margin: 6px 0; }
+    .ok { color: var(--ok); font-weight: 600; }
+
+    .gate { max-width: 420px; margin: 18vh auto; text-align: center; padding: 0 20px; }
+    .gate h1 { font-family: var(--serif); font-size: 40px; margin: 0 0 8px; }
+    .toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; z-index: 30; }
+
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 200px minmax(0, 1fr); }
+      aside.preview { grid-column: 1 / -1; position: static; }
+    }
+    @media (max-width: 760px) {
+      header.top { padding-left: 16px; padding-right: 16px; }
+      .top .event { display: none; }
+      .top { justify-content: space-between; }
+      .brand { flex-direction: column; align-items: flex-start; gap: 0; }
+      .brand b { font-size: 22px; line-height: 1.1; }
+      .brand small { font-size: 10px; }
+      .layout { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
+      nav.steps { position: static; flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 4px; }
+      nav.steps button { white-space: nowrap; padding: 8px 10px; }
+      nav.steps button .label { display: none; }
+      nav.steps button.on .label { display: inline; }
+      .step h1 { font-size: 32px; }
+      .upload { grid-template-columns: 90px 1fr; }
+      .upload .thumb { width: 90px; height: 64px; }
+    }
+  </style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>LK <span>Moments</span></b><small>by LK Productions</small></div>
+  <div class="event" id="event-name"></div>
+  <div class="status" id="status">Up to date</div>
+</header>
+
+<div class="gate" id="gate" hidden>
+  <h1 id="gate-title">Event setup</h1>
+  <p id="gate-text"></p>
+</div>
+
+<div class="layout" id="app" hidden>
+  <nav class="steps" id="steps"></nav>
+  <main class="step" id="step"></main>
+  <aside class="preview">
+    <div class="tabs seg" id="preview-tabs">
+      <button data-p="phone" class="on">Guest's phone</button>
+      <button data-p="tv">Big screen</button>
+    </div>
+    <div class="phone" id="pv-phone"><div class="screen"><iframe id="pv-phone-frame" title="Phone preview" tabindex="-1"></iframe></div><div class="glass"></div></div>
+    <div class="tv" id="pv-tv" hidden><iframe id="pv-tv-frame" title="Slideshow preview" tabindex="-1"></iframe><div class="glass"></div></div>
+    <p>Live preview. It updates a few seconds after each change.</p>
+  </aside>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const key = params.get('key') || '';
+  let data = null;          // { event, polls, state, version }
+  let stepIndex = 0;
+  const seen = new Set([0]);
+
+  const STEPS = [
+    ['welcome', 'Welcome'], ['basics', 'The basics'], ['photos', 'Photos'], ['look', 'Look & branding'],
+    ['words', 'Wording'], ['extras', 'Guest extras'], ['polls', 'Polls & quizzes'], ['finish', 'Finish'],
+  ];
+  const THEME_LABELS = { ivory: 'Ivory', sage: 'Sage', dustyBlue: 'Dusty blue', blush: 'Blush', terracotta: 'Terracotta',
+    crimson: 'Crimson', navy: 'Navy', blackTie: 'Black tie', lewis: 'Lewis University', lewisAthletics: 'Lewis Athletics' };
+  const FONT_CARDS = [['classic', 'Classic', '"Cormorant Garamond", Georgia, serif', 600], ['modern', 'Modern', '"DM Sans", sans-serif', 700],
+    ['elegant', 'Elegant', '"Playfair Display", Georgia, serif', 600], ['script', 'Script', '"Great Vibes", cursive', 400],
+    ['lewis', 'Lewis', 'Montserrat, sans-serif', 700]];
+  const WORDS = [
+    ['intro', 'Welcome message', 'Phone'], ['nameLabel', 'Name prompt', 'Phone'], ['startButton', 'Start button', 'Phone'],
+    ['doneTitle', 'When they run out of shots: title', 'Phone'], ['doneText', 'When they run out of shots: message', 'Phone'],
+    ['closed', 'Camera-closed message', 'Phone'], ['thanksTitle', 'After the event: heading', 'Phone'], ['thanksText', 'After the event: message', 'Phone'],
+    ['cardEyebrow', 'QR card: top line', 'QR card'], ['cardTitle', 'QR card: title', 'QR card'], ['cardSub', 'QR card: subtitle', 'QR card'],
+    ['joinTitle', 'Big screen: QR corner title', 'Big screen'], ['joinSub', 'Big screen: QR corner subtitle', 'Big screen'],
+    ['emptyText', 'Big screen: before the first photo', 'Big screen'],
+  ];
+
+  // ---------------------------------------------------------------- Saving
+  // Changes collect for a moment, then go as one small patch: only what changed, so you and
+  // the client can both edit without undoing each other.
+  let patch = null, pollsDirty = false, saveTimer = null, inFlight = false;
+  function setStatus(text, cls) { $('status').textContent = text; $('status').className = 'status' + (cls ? ' ' + cls : ''); }
+  function queue(path, value) {
+    patch = patch || {};
+    const [a, b] = path.split('.');
+    if (b) { patch[a] = patch[a] || {}; patch[a][b] = value; } else patch[a] = value;
+    if (b) { data.event[a] = data.event[a] || {}; data.event[a][b] = value; } else data.event[a] = value;
+    scheduleSave();
+  }
+  function scheduleSave(ms) {
+    setStatus('Saving…', 'saving');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, ms === undefined ? 700 : ms);
+  }
+  async function flush() {
+    if (inFlight) return scheduleSave(400);
+    if (!patch && !pollsDirty) { setStatus('Saved'); return; }
+    inFlight = true;
+    const sending = patch, sendPolls = pollsDirty;
+    patch = null; pollsDirty = false;
+    try {
+      let r;
+      if (sending) r = await Camera.setupSend(key, 'setup.save', { fields: sending });
+      if (sendPolls) r = await Camera.setupSend(key, 'setup.polls', { polls: pollsForServer() });
+      if (!patch && !pollsDirty) adopt(r, true);
+      setStatus('Saved');
+      refreshPreview();
+    } catch (err) {
+      // Put it back and try again shortly.
+      patch = Object.assign({}, sending || {}, patch || {});
+      if (sendPolls) pollsDirty = true;
+      setStatus(err.final ? err.message : 'Offline — retrying', 'error');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(flush, 4000);
+    }
+    inFlight = false;
+  }
+
+  // The server's copy wins unless something here hasn't been sent yet.
+  function adopt(r, fromSave) {
+    if (!r || !r.event) return;
+    const changed = r.version !== (data && data.version);
+    data = r;
+    $('event-name').textContent = data.event.title;
+    document.title = data.event.title + ' · Event setup';
+    if (changed && !fromSave && !isTyping()) renderStep();
+    if (fromSave) renderNav();
+  }
+  function isTyping() {
+    const a = document.activeElement;
+    return a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) && a.closest('#step');
+  }
+
+  // Someone else (you in LK Moments, or the client) changed something: pull it in.
+  async function poll() {
+    if (document.hidden || patch || pollsDirty || inFlight) return;
+    try {
+      const r = await Camera.setupLoad(key);
+      if (r.version !== data.version) {
+        const typing = isTyping();
+        adopt(r, false);
+        if (!typing) { setStatus('Updated'); refreshPreview(); }
+      }
+    } catch (e) {}
+  }
+
+  // ---------------------------------------------------------------- Preview
+  let previewTimer = null, previewMode = 'phone';
+  function refreshPreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      const id = encodeURIComponent(data.event.id || Camera.eventId);
+      const bust = '&_=' + Date.now();
+      if (previewMode === 'phone') $('pv-phone-frame').src = 'index.html?e=' + id + bust;
+      else $('pv-tv-frame').src = 'slideshow.html?e=' + id + '&extras=0' + bust;
+    }, 1200);
+  }
+  function fitTv() {
+    const box = $('pv-tv').getBoundingClientRect();
+    $('pv-tv-frame').style.transform = 'scale(' + (box.width - 16) / 1280 + ')';
+  }
+  document.querySelectorAll('#preview-tabs button').forEach((b) => b.addEventListener('click', () => {
+    previewMode = b.dataset.p;
+    document.querySelectorAll('#preview-tabs button').forEach((x) => x.classList.toggle('on', x === b));
+    $('pv-phone').hidden = previewMode !== 'phone';
+    $('pv-tv').hidden = previewMode !== 'tv';
+    fitTv();
+    refreshPreview();
+  }));
+  window.addEventListener('resize', fitTv);
+
+  // ---------------------------------------------------------------- Building blocks
+  const h = (tag, attrs, ...kids) => {
+    const el = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => {
+      if (k === 'class') el.className = v;
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+      else if (v !== false && v !== undefined && v !== null) el.setAttribute(k, v === true ? '' : v);
+    });
+    kids.flat().forEach((k) => { if (k !== null && k !== undefined && k !== false) el.append(k.nodeType ? k : document.createTextNode(k)); });
+    return el;
+  };
+  const get = (path) => { const [a, b] = path.split('.'); return b ? (data.event[a] || {})[b] : data.event[a]; };
+  const f = () => data.event.features || {};
+
+  function card(title, hint, ...kids) { return h('div', { class: 'card' }, title && h('h2', {}, title), hint && h('p', { class: 'hint' }, hint), ...kids); }
+
+  function text(path, label, opts) {
+    opts = opts || {};
+    const input = h(opts.multi ? 'textarea' : 'input', { type: opts.type || 'text', placeholder: opts.placeholder || '', maxlength: opts.max || 300 });
+    input.value = get(path) == null ? '' : get(path);
+    input.addEventListener('input', () => queue(path, opts.type === 'number' ? Math.max(opts.min || 0, Math.min(opts.maxNum || 999, parseInt(input.value, 10) || 0)) : input.value));
+    return h('label', { class: 'field' }, h('span', {}, label), input, opts.help && h('small', {}, opts.help));
+  }
+
+  function toggle(path, title, help, onChange) {
+    const input = h('input', { type: 'checkbox' });
+    input.checked = !!get(path);
+    input.addEventListener('change', () => { queue(path, input.checked); if (onChange) onChange(input.checked); });
+    return h('label', { class: 'toggle' }, input, h('div', {}, h('b', {}, title), help && h('small', {}, help)));
+  }
+
+  function segmented(path, options, onChange) {
+    const wrap = h('div', { class: 'seg' });
+    options.forEach(([value, label]) => {
+      wrap.append(h('button', { class: get(path) === value ? 'on' : '', onclick: () => { queue(path, value); if (onChange) onChange(value); renderStep(); } }, label));
+    });
+    return wrap;
+  }
+
+  function listEditor(path, placeholder, max) {
+    const wrap = h('div', {});
+    const items = () => (get(path) || []).slice();
+    const draw = () => {
+      wrap.innerHTML = '';
+      items().forEach((item, i) => {
+        const input = h('input', { type: 'text', placeholder, maxlength: 80 });
+        input.value = item.text;
+        input.addEventListener('input', () => { const list = items(); list[i] = Object.assign({}, list[i], { text: input.value }); queue(path, list); });
+        wrap.append(h('div', { class: 'list-item' }, input,
+          h('button', { class: 'x', title: 'Remove', onclick: () => { const list = items(); list.splice(i, 1); queue(path, list); draw(); } }, '×')));
+      });
+      if (items().length < max) {
+        wrap.append(h('button', { class: 'btn small', onclick: () => {
+          const list = items(); list.push({ id: Math.random().toString(36).slice(2, 8), text: '' }); queue(path, list); draw();
+          const inputs = wrap.querySelectorAll('input'); inputs[inputs.length - 1].focus();
+        } }, '+ Add'));
+      }
+    };
+    draw();
+    return wrap;
+  }
+
+  // ---------------------------------------------------------------- Uploads
+  const UPLOAD_SPECS = {
+    logo: ['Logo', 'A PNG with a transparent background looks best. Any image works.', 1200, 'image/png', false],
+    slideBg: ['Big-screen background', '1920 × 1080 or larger. If your logo is already in it, tell us and we\'ll hide the separate logo.', 2560, 'image/jpeg', true],
+    phoneBg: ['Phone background', 'Portrait, about 1200 × 2600. Shown softly behind the camera page.', 2560, 'image/jpeg', false],
+    frame: ['Photo frame', 'PNG, 2400 × 3200 (portrait) or 3200 × 2400, with a see-through middle.', 3200, 'image/png', false],
+    boothFrame: ['Photo strip design', 'PNG, exactly 1200 × 3600, with four see-through 1080 × 810 windows.', 3600, 'image/png', false],
+  };
+  function upload(kind) {
+    const [label, help, maxPx, mime, dark] = UPLOAD_SPECS[kind];
+    const id = get(kind);
+    const thumb = h('div', { class: 'thumb' }, id ? '' : 'None yet');
+    if (id) thumb.style.backgroundImage = 'url("' + Camera.assetUrl(id, 400) + '")';
+    const file = h('input', { type: 'file', accept: 'image/*', hidden: true });
+    const choose = h('button', { class: 'btn small', onclick: () => file.click() }, id ? 'Replace' : 'Upload');
+    const remove = id ? h('button', { class: 'btn small', onclick: () => sendImage(kind, null) }, 'Remove') : null;
+    file.addEventListener('change', async () => {
+      const picked = file.files && file.files[0];
+      if (!picked) return;
+      choose.disabled = true;
+      choose.textContent = 'Uploading…';
+      try { await sendImage(kind, await prepareImage(picked, maxPx, mime)); }
+      catch (err) { toast(err.message || 'That image could not be read. Try a PNG or JPEG.'); renderStep(); }
+    });
+    return h('div', { class: 'upload' + (dark ? ' dark' : '') }, thumb, h('div', {}, h('b', {}, label), h('small', {}, help), h('div', { class: 'row' }, choose, remove, file)));
+  }
+  // Any image the browser can read, resized to what's needed and re-encoded as PNG or JPEG.
+  function prepareImage(fileObj, maxPx, mime) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(fileObj);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.naturalWidth * scale);
+        c.height = Math.round(img.naturalHeight * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve({ mime, data: c.toDataURL(mime, 0.9).split(',')[1] });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That image could not be read. Try a PNG or JPEG.')); };
+      img.src = url;
+    });
+  }
+  async function sendImage(kind, image) {
+    setStatus('Saving…', 'saving');
+    try {
+      const r = await Camera.setupSend(key, 'setup.branding', image ? { kind, data: image.data, mime: image.mime } : { kind, remove: true });
+      adopt(r, true);
+      renderStep();
+      setStatus('Saved');
+      refreshPreview();
+    } catch (err) {
+      setStatus('Upload failed', 'error');
+      toast(err.final ? err.message : 'Upload failed. Check the connection and try again.');
+      renderStep();
+    }
+  }
+
+  // ---------------------------------------------------------------- Polls
+  function pollsForServer() {
+    return data.polls.map((p) => ({ id: p.id || '', type: p.type === 'words' ? 'words' : 'choice', question: p.question || '',
+      options: p.type === 'words' ? [] : (p.options || []).filter((o) => String(o).trim()),
+      open: p.open !== false, show: p.show !== false, reveal: !!p.reveal,
+      correct: p.correct === null || p.correct === undefined ? -1 : p.correct }));
+  }
+  function pollsChanged() { pollsDirty = true; scheduleSave(900); }
+
+  // ---------------------------------------------------------------- Steps
+  const STEP_VIEWS = {
+    welcome() {
+      const ev = data.event;
+      return [
+        h('h1', {}, 'Let\'s set up ' + ev.title),
+        h('p', { class: 'lead' }, 'We\'ll go through this together. Everything you choose saves as you go, and the preview on the right shows exactly what your guests will see.'),
+        card('What we\'ll cover', null,
+          h('ol', { style: 'margin:0;padding-left:20px;line-height:1.9' },
+            STEPS.slice(1, -1).map(([, label]) => h('li', {}, label)))),
+        card('How it works on the day', null,
+          h('p', { style: 'margin:0' }, 'Guests scan a QR code, take a few photos on their own phone (no app), and the photos land in your album and on the big screen. You keep every original.')),
+      ];
+    },
+    basics() {
+      return [
+        h('h1', {}, 'The basics'), h('p', { class: 'lead' }, 'How your event is named, and how many photos each guest can take.'),
+        card(null, null,
+          text('title', 'Event name', { placeholder: 'Sam & Taylor', max: 120 }),
+          text('headline', 'Line above the name', { placeholder: get('mode') === 'event' ? 'Lewis University' : 'The wedding of', max: 120 }),
+          text('date', 'Date, as it should be written', { placeholder: 'June 14, 2027', max: 60 })),
+        card('Kind of event', 'This sets the built-in wording.', segmented('mode', [['wedding', 'Wedding'], ['event', 'Event']])),
+        card('Photos per guest', 'Weddings usually 4–10. Big events 3–5.',
+          text('shots', 'Shots', { type: 'number', min: 1, maxNum: 50, max: 2 }),
+          toggle('allowRetake', 'Let guests retake a photo before it\'s sent', 'Off feels more like a real disposable camera.')),
+      ];
+    },
+    photos() {
+      const develop = (f().develop || {});
+      const devWrap = h('div', { class: 'sub' });
+      const drawDev = () => {
+        devWrap.innerHTML = '';
+        if (!develop.at) return;
+        const at = h('input', { type: 'datetime-local' });
+        at.value = develop.at;
+        at.addEventListener('change', () => { develop.at = at.value; queue('features.develop', Object.assign({}, develop)); });
+        const screens = h('input', { type: 'checkbox' });
+        screens.checked = develop.screens !== false;
+        screens.addEventListener('change', () => { develop.screens = screens.checked; queue('features.develop', Object.assign({}, develop)); });
+        devWrap.append(h('label', { class: 'field' }, h('span', {}, 'Ready at'), at),
+          h('label', { class: 'toggle' }, screens, h('div', {}, h('b', {}, 'Keep showing them on the big screen meanwhile'))));
+      };
+      const devToggle = h('input', { type: 'checkbox' });
+      devToggle.checked = !!develop.at;
+      devToggle.addEventListener('change', () => {
+        const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
+        const pad = (n) => String(n).padStart(2, '0');
+        develop.at = devToggle.checked ? d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T09:00' : '';
+        queue('features.develop', Object.assign({}, develop));
+        drawDev();
+      });
+      drawDev();
+      return [
+        h('h1', {}, 'Photos'), h('p', { class: 'lead' }, 'Who sees what, and when.'),
+        card(null, null,
+          toggle('showGuestPhotos', 'Guests can see each other\'s photos on their phone', 'A small slideshow on the camera page.'),
+          toggle('approveFirst', 'Approve photos before they reach the big screen', 'Recommended for schools and public events. Otherwise everything shows, and you hide what you don\'t want.'),
+          h('label', { class: 'toggle' }, devToggle, h('div', {}, h('b', {}, 'Hold photos back until a set time, like real film'), h('small', {}, 'Guests can\'t see the album until then.'))),
+          devWrap),
+        card('Short video clips', 'Clips play muted on the big screen. They take more storage than photos.',
+          toggle('features.video', 'Let guests record short clips', null, () => renderStep()),
+          f().video && h('div', { class: 'row sub' },
+            text('features.clipSeconds', 'Longest clip (seconds)', { type: 'number', min: 3, maxNum: 30, max: 2 }),
+            text('features.clips', 'Clips per guest', { type: 'number', min: 1, maxNum: 5, max: 1 }))),
+      ];
+    },
+    look() {
+      const themes = h('div', { class: 'themes' });
+      Object.keys(window.THEMES).forEach((id) => {
+        const t = window.THEMES[id];
+        themes.append(h('button', { class: 'theme' + (get('theme') === id ? ' on' : ''), onclick: () => { queue('theme', id); renderStep(); } },
+          h('div', { class: 'sw', style: 'background:' + t.background }, h('i', { style: 'background:' + t.accent })),
+          h('span', {}, THEME_LABELS[id] || id)));
+      });
+      const fonts = h('div', { class: 'fonts' });
+      FONT_CARDS.forEach(([id, label, family, weight]) => {
+        fonts.append(h('button', { class: 'font' + (get('font') === id ? ' on' : ''), onclick: () => { queue('font', id); renderStep(); } },
+          h('b', { style: 'font-family:' + family + ';font-weight:' + weight }, data.event.title || 'Your Event'), h('span', {}, label)));
+      });
+      const accentOn = h('input', { type: 'checkbox' });
+      accentOn.checked = !!get('accent');
+      const color = h('input', { type: 'color', value: get('accent') || (window.THEMES[get('theme')] || {}).accent || '#a8784f' });
+      color.style.cssText = 'width:56px;height:36px;padding:2px;border-radius:8px;border:1px solid var(--line);background:#fff';
+      color.hidden = !accentOn.checked;
+      accentOn.addEventListener('change', () => { color.hidden = !accentOn.checked; queue('accent', accentOn.checked ? color.value : ''); });
+      color.addEventListener('input', () => queue('accent', color.value));
+      return [
+        h('h1', {}, 'Look & branding'), h('p', { class: 'lead' }, 'Colors, type and images. Watch the preview as you pick.'),
+        card('Colors', null, themes,
+          h('label', { class: 'toggle', style: 'margin-top:12px' }, accentOn, h('div', {}, h('b', {}, 'Use a specific color for buttons and highlights'), h('small', {}, 'e.g. your brand color.'))),
+          color),
+        card('Title font', null, fonts),
+        card('Your images', null, upload('logo'), upload('slideBg'), upload('phoneBg')),
+        card('Photo style', 'Applied on the guest\'s phone as each photo is taken.',
+          h('div', { class: 'field' }, h('span', {}, 'Film look'),
+            segmented('features.look', [['none', 'Original'], ['film', 'Film'], ['bw', 'Black & white'], ['vintage', 'Vintage'], ['choose', 'Guests choose']])),
+          toggle('features.stamp', 'Orange date stamp in the corner', 'Like an old disposable camera.'),
+          h('div', { class: 'field', style: 'margin-top:12px' }, h('span', {}, 'Frame on every photo'),
+            segmented('features.frame', [['none', 'None'], ['band', 'Name & date band'], ['custom', 'Our own design']])),
+          f().frame === 'custom' && upload('frame'),
+          f().frame === 'custom' && h('p', { class: 'hint' }, 'Designing one? Start from a template: ',
+            h('a', { href: 'templates/LK-Moments-Photo-Frame-Portrait-2400x3200.png', download: true }, 'portrait'), ' · ',
+            h('a', { href: 'templates/LK-Moments-Photo-Frame-Landscape-3200x2400.png', download: true }, 'landscape'))),
+      ];
+    },
+    words() {
+      const defaults = Camera.copyFor(Object.assign({}, data.event, { text: {} }));
+      const groups = {};
+      WORDS.forEach(([k, label, group]) => {
+        (groups[group] = groups[group] || []).push(text('text.' + k, label, { placeholder: defaults[k] || '', multi: /intro|Text|closed|emptyText/.test(k) }));
+      });
+      return [
+        h('h1', {}, 'Wording'),
+        h('p', { class: 'lead' }, 'Every line already has built-in wording, shown in grey. Only type where you\'d like it to say something different.'),
+        card('On guests\' phones', null, groups.Phone),
+        card('On the QR card', null, groups['QR card']),
+        card('On the big screen', null, groups['Big screen']),
+        card('A link after their last photo', 'e.g. a donation page, registry or website. Leave the link empty to show nothing.',
+          text('text.ctaText', 'Message', { multi: true, placeholder: 'In lieu of gifts, we\'re raising money for…' }),
+          h('div', { class: 'row' }, text('text.ctaButton', 'Button', { placeholder: 'Donate' }), text('text.ctaUrl', 'Link', { type: 'url', placeholder: 'https://…', max: 600 }))),
+      ];
+    },
+    extras() {
+      return [
+        h('h1', {}, 'Guest extras'), h('p', { class: 'lead' }, 'Optional fun. Two or three usually fit a crowd best.'),
+        card('Keepsakes', null,
+          toggle('features.guestbook', 'Guestbook', 'Guests leave a note; notes show on the big screen and in your album.', () => renderStep()),
+          f().guestbook && h('div', { class: 'sub' }, toggle('features.voice', 'Voice notes too (up to 30 seconds)')),
+          toggle('features.album', 'An album page guests can visit afterwards'),
+          toggle('features.hearts', 'Hearts on photos', 'Guests tap ♥ on favorites; the big screen shows the crowd favorites.')),
+        card('Photo booth', 'A 3-2-1 countdown takes four photos in a row. Counts as one shot.',
+          toggle('features.booth', 'Photo booth', null, () => renderStep()),
+          f().booth && h('div', { class: 'sub' },
+            segmented('features.boothStyle', [['grid', '2 × 2 sheet (best on the big screen)'], ['strip', 'Classic photo strip']]),
+            f().boothStyle === 'strip' && upload('boothFrame'),
+            f().boothStyle === 'strip' && h('p', { class: 'hint' }, 'Template with the exact windows: ',
+              h('a', { href: 'templates/LK-Moments-Photo-Strip-1200x3600.png', download: true }, 'photo strip (1200 × 3600)')))),
+        card('Photo challenges', 'Prompts guests can take on, like “Someone on the dance floor”.', listEditor('features.challenges', 'A photo with the oldest guest', 20)),
+        card('Parts of the day', 'Optional rolls guests pick while shooting, e.g. Ceremony, Reception, Afterparty. Add two or more.',
+          listEditor('features.rolls', 'Reception', 8)),
+        card('More', null,
+          toggle('features.tables', 'Ask for a table number', 'The big screen shows which table is snapping the most.'),
+          toggle('features.songs', 'Song requests for the DJ', 'Guests request and upvote; the DJ sees the list.'),
+          toggle('features.spanish', 'Offer Spanish (Español)', 'Phones set to Spanish switch automatically.')),
+      ];
+    },
+    polls() {
+      const list = h('div', {});
+      const draw = () => {
+        list.innerHTML = '';
+        data.polls.forEach((p, i) => {
+          const type = h('select', {}, h('option', { value: 'choice' }, 'Multiple choice'), h('option', { value: 'words' }, 'Word cloud'));
+          type.value = p.type === 'words' ? 'words' : 'choice';
+          type.addEventListener('change', () => { p.type = type.value; if (p.type === 'words') { p.options = []; p.correct = null; } else if (!p.options || p.options.length < 2) p.options = ['', '']; pollsChanged(); draw(); });
+          const q = h('input', { type: 'text', placeholder: p.type === 'words' ? 'Describe the couple in one word' : 'What should the DJ play next?', maxlength: 200 });
+          q.value = p.question || '';
+          q.addEventListener('input', () => { p.question = q.value; pollsChanged(); });
+          const body = h('div', {});
+          if (p.type !== 'words') {
+            (p.options || []).forEach((o, j) => {
+              const opt = h('input', { type: 'text', placeholder: 'Answer ' + (j + 1), maxlength: 80 });
+              opt.value = o;
+              opt.addEventListener('input', () => { p.options[j] = opt.value; pollsChanged(); });
+              body.append(h('div', { class: 'list-item' }, opt, p.options.length > 2 &&
+                h('button', { class: 'x', onclick: () => { p.options.splice(j, 1); if (p.correct >= p.options.length) p.correct = null; pollsChanged(); draw(); } }, '×')));
+            });
+            if (p.options.length < 6) body.append(h('button', { class: 'btn small', onclick: () => { p.options.push(''); pollsChanged(); draw(); } }, '+ Answer'));
+            const correct = h('select', {}, h('option', { value: '-1' }, 'No right answer (just a poll)'),
+              p.options.map((o, j) => h('option', { value: String(j) }, 'Right answer: ' + (o || 'Answer ' + (j + 1)))));
+            correct.value = p.correct === null || p.correct === undefined ? '-1' : String(p.correct);
+            correct.addEventListener('change', () => { const v = parseInt(correct.value, 10); p.correct = v >= 0 ? v : null; pollsChanged(); });
+            body.append(h('div', { class: 'field', style: 'margin-top:10px' }, h('span', {}, 'Quiz'), correct,
+              h('small', {}, 'Pick one to make it a quiz. It stays hidden until it\'s revealed on the night.')));
+          }
+          list.append(h('div', { class: 'poll' },
+            h('div', { class: 'head' }, type, h('button', { class: 'x', title: 'Delete', onclick: () => { data.polls.splice(i, 1); pollsChanged(); draw(); } }, '×')),
+            h('div', { class: 'field' }, q), body));
+        });
+        if (data.polls.length < 20) {
+          list.append(h('div', { class: 'row' },
+            h('button', { class: 'btn', onclick: () => { data.polls.push({ type: 'choice', question: '', options: ['', ''], correct: null, open: false, show: true }); pollsChanged(); draw(); } }, '+ Poll or quiz'),
+            h('button', { class: 'btn', onclick: () => { data.polls.push({ type: 'words', question: '', options: [], correct: null, open: false, show: true }); pollsChanged(); draw(); } }, '+ Word cloud')));
+        }
+      };
+      draw();
+      return [
+        h('h1', {}, 'Polls & quizzes'),
+        h('p', { class: 'lead' }, 'Questions guests answer from the same QR code, with results live on the big screen. We open each one at the right moment on the night.'),
+        card(null, null, list),
+      ];
+    },
+    finish() {
+      const st = data.state || {};
+      const notes = h('textarea', { placeholder: 'Anything else we should know: timeline, song for the highlight video, people not to photograph, questions…' });
+      notes.value = st.notes || '';
+      notes.addEventListener('change', () => Camera.setupSend(key, 'setup.done', { notes: notes.value }).then((r) => adopt(r, true)).catch(() => toast('Couldn\'t save your notes. Try again.')));
+      const doneBtn = h('button', { class: 'btn brass', onclick: async () => {
+        doneBtn.disabled = true;
+        try { adopt(await Camera.setupSend(key, 'setup.done', { done: !st.done, notes: notes.value }), true); renderStep(); }
+        catch (e) { toast('Couldn\'t save. Try again.'); doneBtn.disabled = false; }
+      } }, st.done ? 'Undo — I have more changes' : 'Everything looks good');
+      return [
+        h('h1', {}, 'Finish'), h('p', { class: 'lead' }, 'Anything else, then let us know you\'re happy with it. You can come back and change things until the event.'),
+        card('Notes for us', null, notes),
+        h('div', { class: 'card done-card' },
+          st.done ? h('div', {}, h('div', { class: 'big' }, 'All set'), h('p', { class: 'ok' }, '✓ Reviewed ' + new Date(st.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })))
+                  : h('div', {}, h('div', { class: 'big' }, 'Ready when you are'), h('p', { class: 'hint' }, 'We\'ll take it from here: QR codes, screens and the day itself.')),
+          doneBtn),
+      ];
+    },
+  };
+
+  function renderNav() {
+    const nav = $('steps');
+    nav.innerHTML = '';
+    STEPS.forEach(([id, label], i) => {
+      nav.append(h('button', { class: (i === stepIndex ? 'on' : '') + (seen.has(i) ? ' seen' : ''), onclick: () => go(i) },
+        h('span', { class: 'n' }, i === STEPS.length - 1 && data.state && data.state.done ? '✓' : String(i + 1)), h('span', { class: 'label' }, label)));
+    });
+  }
+  function renderStep() {
+    const view = $('step');
+    const scroll = window.scrollY;
+    view.innerHTML = '';
+    STEP_VIEWS[STEPS[stepIndex][0]]().forEach((el) => el && view.append(el));
+    const prev = stepIndex > 0 ? h('button', { class: 'btn', onclick: () => go(stepIndex - 1) }, '← ' + STEPS[stepIndex - 1][1]) : h('span', {});
+    const next = stepIndex < STEPS.length - 1 ? h('button', { class: 'btn primary', onclick: () => go(stepIndex + 1) }, (stepIndex === 0 ? 'Let\'s start' : STEPS[stepIndex + 1][1]) + ' →') : h('span', {});
+    view.append(h('div', { class: 'nextbar' }, prev, next));
+    renderNav();
+    window.scrollTo(0, scroll);
+  }
+  function go(i) {
+    stepIndex = i;
+    seen.add(i);
+    renderStep();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try { history.replaceState(null, '', '#' + STEPS[i][0]); } catch (e) {}
+  }
+
+  function toast(msg) {
+    $('toast').textContent = msg;
+    $('toast').hidden = false;
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => { $('toast').hidden = true; }, 3500);
+  }
+
+  function gate(title, textBody) {
+    $('gate-title').textContent = title;
+    $('gate-text').textContent = textBody;
+    $('gate').hidden = false;
+    $('app').hidden = true;
+    setStatus('');
+  }
+
+  async function init() {
+    if (!Camera.eventId) return gate('Event setup', 'This link is missing the event. Use the link we sent you.');
+    try {
+      data = await Camera.setupLoad(key);
+    } catch (err) {
+      if (err.code === 'setup-off') return gate('Setup is closed', 'This setup link has been turned off. Get in touch if you need a change.');
+      if (err.code === 'bad-key' || err.code === 'not-found') return gate('Link not recognised', 'Check you used the whole link we sent you.');
+      return gate('Can\'t connect', 'Check your connection and reload the page.');
+    }
+    $('app').hidden = false;
+    $('event-name').textContent = data.event.title;
+    document.title = data.event.title + ' · Event setup';
+    const hash = location.hash.slice(1);
+    const at = STEPS.findIndex(([id]) => id === hash);
+    if (at > 0) { stepIndex = at; seen.add(at); }
+    renderStep();
+    refreshPreview();
+    fitTv();
+    setStatus('Up to date');
+    setInterval(poll, 4000);
+    window.addEventListener('beforeunload', (e) => { if (patch || pollsDirty || inFlight) { flush(); e.preventDefault(); e.returnValue = ''; } });
+  }
+  init();
+</script>
+</body>
+</html>

@@ -270,6 +270,43 @@
     return data.ok ? data.live || {} : {};
   }
 
+  // ---- Client setup page (setup key) ----
+  let demoSetup = null;
+  function demoSetupPayload() {
+    if (!demoSetup) {
+      demoSetup = { event: JSON.parse(JSON.stringify(Object.assign({ text: {}, accent: '', font: 'classic' }, DEMO_EVENT))), polls: demoPolls.slice(), state: {}, version: 'demo1' };
+    }
+    return JSON.parse(JSON.stringify(demoSetup));
+  }
+  async function setupLoad(key) {
+    if (demo) return demoSetupPayload();
+    const res = await fetch(apiUrl + '?action=setup&e=' + encodeURIComponent(eventId) + '&key=' + encodeURIComponent(key), { cache: 'no-store' });
+    const data = await readJSON(res);
+    if (!data.ok) throw codeError(data.error === 'bad-key' || data.error === 'setup-off' || data.error === 'not-found' ? data.error : 'network');
+    return data;
+  }
+  async function setupSend(key, action, args) {
+    if (demo) {
+      const d = demoSetupPayload();
+      if (action === 'setup.save') {
+        const f = args.fields || {};
+        Object.keys(f).forEach((k) => {
+          if (k === 'features') Object.assign(d.event.features, f.features);
+          else if (k === 'text') Object.assign(d.event.text, f.text);
+          else d.event[k] = f[k];
+        });
+      }
+      if (action === 'setup.polls') d.polls = args.polls;
+      if (action === 'setup.done') Object.assign(d.state, { notes: args.notes, done: args.done, at: args.done ? Date.now() : null });
+      if (action === 'setup.branding') d.event[args.kind] = args.remove ? '' : '';
+      d.version = 'demo' + Date.now();
+      demoSetup = d;
+      await new Promise((r) => setTimeout(r, 300));
+      return JSON.parse(JSON.stringify(d));
+    }
+    return send(Object.assign({ action, key }, args || {}));
+  }
+
   // ---- Run-of-show (admin key) ----
   let demoLive = {};
   async function control(key, op, args) {
@@ -484,6 +521,6 @@
   window.Camera = {
     eventId: demo && !eventId ? 'demo' : eventId, demo,
     loadEvent, applyTheme, applyFont, applyBranding, assetUrl, applyCopy, copyFor, listPhotos, uploadPhoto, photoUrl, photoFallbackUrl, pageUrl,
-    fitTitles, getLive, setLang, get lang() { return lang; }, requestSong, voteSong, markSongs, control, adminPhotos, moderate, listPolls, vote, sendMessage, heart, star, moderateMessages, uploadClip, videoUrl,
+    fitTitles, getLive, setLang, setupLoad, setupSend, get lang() { return lang; }, requestSong, voteSong, markSongs, control, adminPhotos, moderate, listPolls, vote, sendMessage, heart, star, moderateMessages, uploadClip, videoUrl,
   };
 })();
