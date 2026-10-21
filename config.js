@@ -4,7 +4,7 @@
 // ============================================================
 window.SITE = {
   // The Apps Script "Web app URL" (ends in /exec). Leave blank to run in demo mode.
-  apiUrl: 'https://script.google.com/macros/s/AKfycbzyf83YvY0Z4DAw2BTjTjSCM29x5AhLXQLmixmV4pPHfGL4JOBKdvfudYOV2qdiajIN/exec',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbyguKskJawR4ljWPNax8J0XJ2grvyqJ9KLU474ajq1iKmvXD_SNXcjaWLdnTVk1ROI/exec',
 };
 
 // Color themes. Pick one per event in the sheet's "Theme" column.
