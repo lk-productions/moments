@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" class="loading">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f1ea">
+  <meta name="robots" content="noindex">
+  <title>Find Your Seat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="config.js?v=20261101a"></script>
+  <script src="shared.js?v=20261101a"></script>
+  <style>
+    :root {
+      --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
+      --accent: #a8784f; --accent-ink: #fff; --line: #e6ddd2; --danger: #b04a3c;
+      --serif: "Cormorant Garamond", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: var(--sans, Inter), system-ui, -apple-system, sans-serif; font-size: 16px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    body.has-bg { background: linear-gradient(color-mix(in srgb, var(--bg) 82%, transparent), color-mix(in srgb, var(--bg) 82%, transparent)), var(--bg-image) center / cover fixed, var(--bg); }
+    main {
+      max-width: 440px; margin: 0 auto; min-height: 100vh; min-height: 100dvh;
+      padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column;
+    }
+    section { display: flex; flex-direction: column; flex: 1; gap: 16px; }
+    [hidden] { display: none !important; }
+    p { margin: 0; }
+    html.loading main { visibility: hidden; }
+    .logo { display: block; margin: 0 auto; max-width: 200px; max-height: 70px; object-fit: contain; }
+    .eyebrow { margin: 8px 0 0; text-align: center; letter-spacing: .18em; text-transform: uppercase; font-size: 12px; color: var(--muted); }
+    h1, h2 { font-family: var(--serif); font-weight: 600; text-align: center; margin: 0; line-height: 1.1; }
+    h1 { font-size: 42px; }
+    h2 { font-size: 52px; }
+    html[data-font="script"] h1, html[data-font="script"] h2 { font-weight: 400; }
+    .date { text-align: center; color: var(--muted); margin-top: -8px; font-style: italic; font-family: var(--serif); font-size: 20px; }
+    html[data-font="script"] .date, html[data-font="script"] .cap { font-style: normal; }
+    .lead { text-align: center; color: var(--muted); }
+    .spacer { flex: 1; }
+
+    /* A place card with the search inside. */
+    .place {
+      position: relative; margin-top: 10px; background: var(--card); border: 1px solid var(--line);
+      border-radius: 6px; padding: 26px 18px 18px; box-shadow: 0 12px 30px rgba(0,0,0,.08);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .place::before { content: ""; position: absolute; left: 14px; right: 14px; top: 10px; border-top: 1px dashed var(--line); }
+    .place-title { font-family: var(--serif); font-size: 28px; font-weight: 600; text-align: center; line-height: 1.1; }
+    input[type=search] {
+      -webkit-appearance: none; appearance: none; width: 100%;
+      font: inherit; font-size: 17px; color: var(--ink);
+      padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+    }
+    input[type=search]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    input[type=search]::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+    .results { display: flex; flex-direction: column; gap: 8px; }
+    .result {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+      font: inherit; font-size: 17px; text-align: left; cursor: pointer; color: var(--ink);
+      padding: 13px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .result:active, .result:focus-visible { border-color: var(--accent); outline: none; }
+    .result small { display: block; font-size: 13px; color: var(--muted); }
+    .result .go { color: var(--accent); font-size: 22px; line-height: 1; }
+    .hint { text-align: center; color: var(--muted); font-size: 14px; }
+    .hint.error { color: var(--danger); }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; font: inherit; font-weight: 600; font-size: 17px;
+      padding: 16px; border-radius: 999px; border: 0; cursor: pointer;
+      background: var(--accent); color: var(--accent-ink); text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+
+    /* The floor plan as a freshly shot instant photo, developing in. */
+    .polaroid {
+      background: #fff; padding: 10px 10px 0; border-radius: 4px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.16); transform: rotate(-1.5deg); margin: 4px 2px;
+    }
+    .photo { position: relative; background: #fbfaf8; overflow: hidden; }
+    .photo img { display: block; width: 100%; height: auto; }
+    .developing .photo img { animation: develop 2.2s ease-out both; }
+    @keyframes develop {
+      0%   { filter: brightness(.25) sepia(1) contrast(.6) blur(2px); }
+      60%  { filter: brightness(1.05) sepia(.4) contrast(.9) blur(0); }
+      100% { filter: none; }
+    }
+    .cap {
+      min-height: 44px; display: flex; align-items: center; justify-content: center; text-align: center;
+      font-family: var(--serif); font-style: italic; font-size: 19px; color: #4a423c; padding: 4px 6px;
+    }
+    /* Their table: a ring that settles on the spot, then keeps gently pulsing. */
+    .pin {
+      position: absolute; width: 11%; aspect-ratio: 1; transform: translate(-50%, -50%);
+      border-radius: 50%; border: 3px solid var(--accent);
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+      box-shadow: 0 0 0 3px #fff, 0 2px 10px rgba(0,0,0,.25);
+      animation: land .6s 1.6s cubic-bezier(.2,1.6,.4,1) both;
+    }
+    .pin::after {
+      content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 3px solid var(--accent);
+      animation: ring 1.8s ease-out 2.3s infinite; opacity: 0;
+    }
+    @keyframes land { from { transform: translate(-50%, -50%) scale(2.4); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+    @keyframes ring { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(2.2); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .developing .photo img, .pin, .pin::after { animation: none; }
+    }
+
+    .mates-label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); text-align: center; margin-bottom: 8px; }
+    .mates { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .mate { font-size: 14px; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); }
+    .mate.me { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); font-weight: 600; }
+    .heart { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <!-- Search -->
+  <section id="screen-find">
+    <img class="logo" data-logo alt="" hidden>
+    <p class="eyebrow" data-copy="headline"></p>
+    <h1 data-title></h1>
+    <p class="date" data-date></p>
+    <div class="place">
+      <p class="place-title" data-t>Find your seat</p>
+      <label class="lead" for="q" style="font-size:15px" data-t>Type your first or last name</label>
+      <input type="search" id="q" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" enterkeyhint="search">
+    </div>
+    <div class="results" id="results" role="list" aria-live="polite"></div>
+    <p class="hint" id="hint"></p>
+    <div class="spacer"></div>
+    <p class="hint" id="glad"></p>
+  </section>
+
+  <!-- Their table -->
+  <section id="screen-seat" hidden>
+    <p class="eyebrow" id="hello"></p>
+    <h2 id="table-name"></h2>
+    <p class="lead" id="table-sub" style="margin-top:-10px"></p>
+    <div class="polaroid" id="polaroid" hidden>
+      <div class="photo" id="photo"><img id="plan" alt=""></div>
+      <p class="cap" id="cap"></p>
+    </div>
+    <div>
+      <p class="mates-label" id="mates-label"></p>
+      <div class="mates" id="mates"></div>
+    </div>
+    <div class="spacer"></div>
+    <a class="btn" id="camera" href="./"></a>
+    <button class="btn secondary" id="again" data-t>Find another guest</button>
+  </section>
+</main>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+
+  // Spanish, for events that offer it (phones set to Spanish see it automatically).
+  const ES = {
+    'Find your seat': 'Encuentra tu lugar', 'Type your first or last name': 'Escribe tu nombre o apellido',
+    'Your name': 'Tu nombre', 'Find another guest': 'Buscar a otro invitado', 'Welcome, ': 'Bienvenido/a, ',
+    'Table ': 'Mesa ', 'Head table': 'Mesa principal', 'At your table · ': 'En tu mesa · ', 'You': 'Tú',
+    'Look for this table number': 'Busca este número de mesa', 'Up front with the couple': 'Al frente con los novios',
+    'Open the camera': 'Abrir la cámara', 'Be our photographer': 'Sé nuestro fotógrafo',
+    "We're so glad you're here": 'Qué alegría tenerte aquí',
+    'No match yet. Try just your last name, or the name of the person you came with.': 'Aún no hay coincidencias. Prueba solo tu apellido, o el nombre de quien te acompaña.',
+    "The seating chart isn't up yet. Check back soon!": 'La distribución de mesas aún no está lista. ¡Vuelve pronto!',
+    "Can't connect. Refresh to try again.": 'No se puede conectar. Recarga para intentarlo de nuevo.',
+    'Event not found. Check the ?e= part of the link.': 'Evento no encontrado.',
+  };
+  let es = false;
+  const t = (s) => (es && ES[s]) || s;
+
+  const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const isPlaceholder = (n) => /['’]s guest$/i.test(n) || /^guest of /i.test(n);
+  const first = (n) => n.replace(/^(mr|mrs|ms|miss|dr)\.?\s+/i, '').split(/\s+/)[0];
+
+  let event, seats, guests = [];
+  try {
+    event = (await Camera.loadEvent()).event;
+    Camera.applyBranding(event, { background: 'phone' });
+    es = !!event.features.spanish && /^es\b/i.test(navigator.language || '');
+    Camera.setLang(es ? 'es' : 'en');
+    Camera.applyCopy(event);
+    document.title = t('Find your seat') + ' · ' + event.title;
+    document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = t(el.textContent); });
+    $('q').placeholder = t('Your name');
+    $('glad').innerHTML = '';
+    $('glad').append(t("We're so glad you're here") + ' ');
+    const heart = document.createElement('span'); heart.className = 'heart';
+    heart.textContent = event.mode === 'event' ? '✦' : '♥';
+    $('glad').append(heart);
+    $('camera').href = Camera.pageUrl('./');
+    $('camera').textContent = '📷 ' + t(event.mode === 'event' ? 'Open the camera' : 'Be our photographer');
+    $('cap').textContent = [event.title, event.date].filter(Boolean).join(' · ');
+    seats = await Camera.loadSeats();
+    guests = seats.guests.map(([name, table, role], i) => ({ i, name, table: String(table), role: role || '', words: norm(name).split(' ') }));
+    if (!guests.length) throw Object.assign(new Error('empty'), { code: 'off' });
+  } catch (err) {
+    const msg = err.code === 'off' ? "The seating chart isn't up yet. Check back soon!"
+      : err.code === 'not-found' || err.code === 'missing' ? 'Event not found. Check the ?e= part of the link.'
+      : "Can't connect. Refresh to try again.";
+    $('hint').textContent = t(msg);
+    $('hint').classList.add('error');
+    document.querySelector('.place').hidden = true;
+  }
+  document.documentElement.classList.remove('loading');
+  Camera.fitTitles();
+  if (!guests.length) return;
+
+  const tableLabel = (id) => (seats.names && seats.names[id]) || (/^\d+$/.test(id) ? t('Table ') + id
+    : /^(ht|head)$/i.test(id) ? t('Head table') : id);
+
+  // Load the floor plan now, so it's ready by the time someone taps their name.
+  const plan = $('plan');
+  if (seats.planUrl) {
+    plan.onerror = () => {
+      if (!plan.dataset.fb && seats.plan && seats.plan !== 'demo') {
+        plan.dataset.fb = 1; plan.src = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(seats.plan) + '&sz=w1600';
+      } else { $('polaroid').hidden = true; plan.dataset.broken = 1; }
+    };
+    plan.src = seats.planUrl;
+  }
+
+  // ---- Search: every word typed must start one of the words in the name ----
+  function search(q) {
+    const qs = norm(q).split(' ').filter(Boolean);
+    if (!qs.length) return [];
+    const pool = guests.filter((g) => !isPlaceholder(g.name));
+    let out = pool.filter((g) => qs.every((w) => g.words.some((x) => x.startsWith(w))));
+    if (!out.length && norm(q).length >= 3) out = pool.filter((g) => g.words.join(' ').includes(norm(q)));
+    const score = (g) => (g.words[0].startsWith(qs[0]) ? 0 : 1);
+    return out.sort((a, b) => score(a) - score(b) || a.name.localeCompare(b.name)).slice(0, 8);
+  }
+
+  function showResults() {
+    const q = $('q').value;
+    const list = search(q);
+    const box = $('results');
+    box.innerHTML = '';
+    list.forEach((g) => {
+      const b = document.createElement('button');
+      b.className = 'result'; b.type = 'button'; b.setAttribute('role', 'listitem');
+      const who = document.createElement('span');
+      who.textContent = g.name;
+      if (g.role) { const s = document.createElement('small'); s.textContent = g.role; who.appendChild(s); }
+      const go = document.createElement('span'); go.className = 'go'; go.textContent = '›'; go.setAttribute('aria-hidden', 'true');
+      b.append(who, go);
+      b.addEventListener('click', () => showSeat(g));
+      box.appendChild(b);
+    });
+    $('hint').textContent = norm(q).length >= 2 && !list.length
+      ? t('No match yet. Try just your last name, or the name of the person you came with.') : '';
+  }
+  $('q').addEventListener('input', showResults);
+  $('q').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { const r = search($('q').value); if (r.length === 1) showSeat(r[0]); else $('q').blur(); }
+  });
+
+  // The camera page asks for a name (and maybe a table): fill them in for when they open it.
+  function rememberForCamera(g) {
+    const key = 'wedcam-v1:' + Camera.eventId;
+    try {
+      const saved = JSON.parse(localStorage.getItem(key));
+      // Same starting state the camera page makes for a new phone.
+      const state = saved && typeof saved.used === 'number' ? saved : { used: 0, name: '', started: false };
+      if (!state.name) state.name = g.name;
+      if (event.features.tables && !state.table) state.table = g.table.slice(0, 6);
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (e) { /* private browsing */ }
+  }
+
+  // ---- Their table ----
+  function showSeat(g, push = true) {
+    const head = /^(ht|head)$/i.test(g.table);
+    $('hello').textContent = t('Welcome, ') + first(g.name);
+    $('table-name').textContent = head && !(seats.names && seats.names[g.table]) ? (es ? t('Head table') : 'The head table') : tableLabel(g.table);
+    $('table-sub').textContent = head && event.mode !== 'event' ? t('Up front with the couple') : t('Look for this table number');
+    $('table-sub').hidden = !head && !/^\d+$/.test(g.table);
+
+    const spot = seats.spots && seats.spots[g.table];
+    const photo = $('photo');
+    photo.querySelectorAll('.pin').forEach((p) => p.remove());
+    $('polaroid').hidden = !seats.planUrl || !!plan.dataset.broken;
+    if (spot) {
+      const pin = document.createElement('div');
+      pin.className = 'pin';
+      pin.style.left = spot[0] * 100 + '%';
+      pin.style.top = spot[1] * 100 + '%';
+      photo.appendChild(pin);
+    }
+    const p = $('polaroid'); p.classList.remove('developing'); void p.offsetWidth; p.classList.add('developing');
+
+    const mates = guests.filter((x) => x.table === g.table);
+    $('mates-label').textContent = t('At your table · ') + mates.length;
+    const box = $('mates'); box.innerHTML = '';
+    mates.sort((a, b) => (b === g) - (a === g) || a.name.localeCompare(b.name)).forEach((x) => {
+      const s = document.createElement('span');
+      s.className = 'mate' + (x === g ? ' me' : '');
+      s.textContent = x === g ? t('You') : x.name;
+      box.appendChild(s);
+    });
+    rememberForCamera(g);
+    $('screen-find').hidden = true; $('screen-seat').hidden = false;
+    Camera.fitTitles();
+    window.scrollTo(0, 0);
+    if (push) history.pushState({ seat: g.i }, '');
+  }
+
+  function back() {
+    $('screen-seat').hidden = true; $('screen-find').hidden = false;
+    $('q').value = ''; showResults(); $('q').focus();
+  }
+  $('again').addEventListener('click', () => (history.state && history.state.seat != null ? history.back() : back()));
+  window.addEventListener('popstate', (e) => {
+    if (e.state && e.state.seat != null) showSeat(guests[e.state.seat], false); else back();
+  });
+})();
+</script>
+</body>
+</html>

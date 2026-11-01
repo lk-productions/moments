@@ -21,6 +21,7 @@
       guestbook: true, hearts: true, look: 'choose', stamp: true, video: false, clipSeconds: 10, clips: 1,
       develop: { at: '', screens: true, until: 0 }, developing: false, album: true,
       booth: true, boothStyle: params.get('booth') === 'strip' ? 'strip' : 'grid', frame: 'band', tables: true, voice: true, songs: true, spanish: true,
+      seating: true,
       rolls: [{ id: 'ceremony', text: 'Ceremony' }, { id: 'reception', text: 'Reception' }],
       challenges: [{ id: 'dance', text: 'Someone on the dance floor' }, { id: 'oldest', text: 'The longest-married couple' },
         { id: 'selfie', text: 'A selfie with the couple' }],
@@ -221,6 +222,45 @@
     if (data.event && !data.event.features) data.event.features = {}; // older Code.gs
     return { event: data.event, photos: useSamples ? await demoPhotos() : (data.photos || []), polls: data.polls || [],
       messages: data.messages || [], board: data.board || [], live: data.live || {}, songs: data.songs || [] };
+  }
+
+  // The seat finder: { guests: [[name, table, role]], spots: { table: [x, y] }, names, plan, planUrl }.
+  // Rejects with err.code = 'off' (seat finder switched off) | 'not-found' | 'network'.
+  async function loadSeats() {
+    if (demo) return demoSeats();
+    let data;
+    try {
+      const res = await fetch(apiUrl + '?action=seats&e=' + encodeURIComponent(eventId), { cache: 'no-store' });
+      data = await res.json();
+    } catch (e) {
+      throw codeError('network');
+    }
+    if (!data.ok) throw codeError(data.error === 'seating-off' ? 'off' : data.error === 'not-found' ? 'not-found' : 'network');
+    const seats = data.seats || {};
+    return { guests: seats.guests || [], spots: seats.spots || {}, names: seats.names || {}, plan: seats.plan || '',
+      planUrl: assetUrl(seats.plan, 1600) };
+  }
+
+  // A small sample room for ?e=demo.
+  function demoSeats() {
+    const spots = { 1: [0.25, 0.3], 2: [0.5, 0.3], 3: [0.75, 0.3], 4: [0.25, 0.62], 5: [0.5, 0.62], 6: [0.75, 0.62], HT: [0.5, 0.1] };
+    const W = 600, H = 420;
+    let svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" font-family="Helvetica,Arial,sans-serif">' +
+      '<rect width="' + W + '" height="' + H + '" fill="#fff"/><rect x="20" y="16" width="560" height="388" fill="none" stroke="#2f3533" stroke-width="4"/>' +
+      '<rect x="200" y="380" width="200" height="24" fill="#fff"/><text x="300" y="398" font-size="13" text-anchor="middle" fill="#7b7068">ENTRANCE</text>' +
+      '<rect x="150" y="320" width="300" height="50" fill="none" stroke="#9aa19e" stroke-dasharray="4 4"/><text x="300" y="350" font-size="12" text-anchor="middle" fill="#7b7068">dance floor</text>';
+    Object.keys(spots).forEach((t) => {
+      const [x, y] = spots[t];
+      svg += t === 'HT'
+        ? '<rect x="' + (x * W - 110) + '" y="' + (y * H - 12) + '" width="220" height="24" fill="#f3ede5" stroke="#2f3533"/><text x="' + x * W + '" y="' + (y * H + 5) + '" font-size="13" text-anchor="middle" fill="#2f3533">Head table</text>'
+        : '<circle cx="' + x * W + '" cy="' + y * H + '" r="34" fill="#f3ede5" stroke="#2f3533"/><text x="' + x * W + '" y="' + (y * H + 7) + '" font-size="20" text-anchor="middle" fill="#2f3533">' + t + '</text>';
+    });
+    svg += '</svg>';
+    const guests = [['Alex Rivera', 'HT', 'Bride'], ['Jordan Lee', 'HT', 'Groom'], ['Sam Patel', 'HT', 'Best man'],
+      ['Aunt May', 1], ['Uncle Ben', 1], ['Chris Dana', 2], ['Priya Shah', 2], ['Grandpa Joe', 1], ['Elena Ruiz', 3],
+      ['Hugo Martin', 3], ['Grace Kim', 4], ['Maria Lopez', 4], ['Dev Singh', 5], ['Taylor Brooks', 5], ['Ava Chen', 6], ['Frank Moore', 6]];
+    return Promise.resolve({ guests, spots, names: {}, plan: 'demo',
+      planUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) });
   }
 
   // A guest action (POST). text/plain keeps it a "simple" request, so there's no CORS preflight.
@@ -520,7 +560,7 @@
 
   window.Camera = {
     eventId: demo && !eventId ? 'demo' : eventId, demo,
-    loadEvent, applyTheme, applyFont, applyBranding, assetUrl, applyCopy, copyFor, listPhotos, uploadPhoto, photoUrl, photoFallbackUrl, pageUrl,
+    loadEvent, loadSeats, applyTheme, applyFont, applyBranding, assetUrl, applyCopy, copyFor, listPhotos, uploadPhoto, photoUrl, photoFallbackUrl, pageUrl,
     fitTitles, getLive, setLang, setupLoad, setupSend, get lang() { return lang; }, requestSong, voteSong, markSongs, control, adminPhotos, moderate, listPolls, vote, sendMessage, heart, star, moderateMessages, uploadClip, videoUrl,
   };
 })();

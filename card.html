@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-  <script src="config.js?v=20261022a"></script>
-  <script src="shared.js?v=20261022a"></script>
+  <script src="config.js?v=20261101a"></script>
+  <script src="shared.js?v=20261101a"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068; --accent: #a8784f; --line: #e6ddd2;
@@ -88,8 +88,8 @@
     <div class="qr" id="qr"></div>
     <div class="steps">
       <div><b>1. Scan</b>with your phone camera</div>
-      <div><b>2. Shoot</b><span id="shots-step"></span></div>
-      <div><b>3. Watch</b>them on the slideshow</div>
+      <div><b id="step2">2. Shoot</b><span id="shots-step"></span></div>
+      <div><b id="step3">3. Watch</b><span id="step3-text">them on the slideshow</span></div>
     </div>
     <div>
       <p class="names" data-title></p>
@@ -106,9 +106,23 @@
       document.title = event.title + ' · QR Card';
       Camera.applyCopy(event);
       document.getElementById('shots-step').textContent = event.shots + ' photos, no deleting';
+      // ?for=seats: the "Find your seat" card, for the welcome table.
+      const seats = new URLSearchParams(location.search).get('for') === 'seats';
+      const target = Camera.pageUrl(seats ? 'seats.html' : './');
+      if (seats) {
+        document.title = event.title + ' · Seating QR Card';
+        const set = (sel, text) => document.querySelectorAll(sel).forEach((el) => { el.textContent = text; });
+        set('[data-copy="cardEyebrow"]', 'Welcome');
+        set('[data-copy="cardTitle"]', 'Find your seat');
+        set('[data-copy="cardSub"]', "Scan with your phone, type your name, and we'll show you to your table.");
+        set('#step2', '2. Type');
+        set('#shots-step', 'your first or last name');
+        set('#step3', '3. Find');
+        set('#step3-text', 'your table on the map');
+      }
 
       const qr = qrcode(0, 'M');
-      qr.addData(Camera.pageUrl('./'));
+      qr.addData(target);
       qr.make();
       const svg = qr.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
       document.getElementById('qr').innerHTML = svg;
@@ -123,8 +137,8 @@
         document.title = event.title + ' · QR Code';
         document.getElementById('qr-only').innerHTML = qr.createSvgTag({ cellSize: 8, margin: 4, scalable: true });
         document.getElementById('qr-only').hidden = false;
-        document.getElementById('hint').textContent = 'Scans to ' + Camera.pageUrl('./');
-        const name = (event.id || 'camera') + '-qr';
+        document.getElementById('hint').textContent = 'Scans to ' + target;
+        const name = (event.id || 'camera') + (seats ? '-seats-qr' : '-qr');
         const save = (href, ext) => { const a = document.createElement('a'); a.href = href; a.download = name + ext; a.click(); };
         const png = document.getElementById('dl-png');
         const vec = document.getElementById('dl-svg');
