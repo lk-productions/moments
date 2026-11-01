@@ -233,6 +233,9 @@
     plan.src = seats.planUrl;
   }
 
+  const seen = new Set(), twins = new Set();
+  guests.forEach((g) => { const k = norm(g.name); if (seen.has(k)) twins.add(k); seen.add(k); });
+
   // ---- Search: every word typed must start one of the words in the name ----
   function search(q) {
     const qs = norm(q).split(' ').filter(Boolean);
@@ -254,7 +257,9 @@
       b.className = 'result'; b.type = 'button'; b.setAttribute('role', 'listitem');
       const who = document.createElement('span');
       who.textContent = g.name;
-      if (g.role) { const s = document.createElement('small'); s.textContent = g.role; who.appendChild(s); }
+      // Two people with the same name (a father and son, say) are told apart by role, or by table.
+      const sub = g.role || (twins.has(norm(g.name)) ? tableLabel(g.table) : '');
+      if (sub) { const s = document.createElement('small'); s.textContent = sub; who.appendChild(s); }
       const go = document.createElement('span'); go.className = 'go'; go.textContent = '›'; go.setAttribute('aria-hidden', 'true');
       b.append(who, go);
       b.addEventListener('click', () => showSeat(g));
