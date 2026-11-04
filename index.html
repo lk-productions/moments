@@ -7,8 +7,8 @@
   <title>LK Moments</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="config.js?v=20261101b"></script>
-  <script src="shared.js?v=20261101b"></script>
+  <script src="config.js?v=20261103a"></script>
+  <script src="shared.js?v=20261103a"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -532,6 +532,17 @@
   state.clipsUsed = state.clipsUsed || 0;
   state.challengesDone = state.challengesDone || [];
   const features = () => (CONFIG && CONFIG.features) || {};
+
+  // The same link can serve ceremony after ceremony. When a new one starts, this phone gets a
+  // fresh roll, even if it was used at the last one. Its name stays filled in.
+  function syncRound() {
+    const round = features().round || 1;
+    if ((state.round || 1) === round) { state.round = round; return false; }
+    state = { used: 0, name: state.name, started: false, gid: state.gid, look: state.look, round,
+      clipsUsed: 0, challengesDone: [] };
+    save();
+    return true;
+  }
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
   }
@@ -1014,7 +1025,11 @@
   let pollShown = null;
   let pollRefresh = null;
 
-  function voteKey(id) { return 'wedcam-vote:' + Camera.eventId + ':' + id; }
+  // Polls keep their IDs from ceremony to ceremony, so a vote is remembered per ceremony.
+  function voteKey(id) {
+    const round = features().round || 1;
+    return 'wedcam-vote:' + Camera.eventId + ':' + (round > 1 ? round + ':' : '') + id;
+  }
   // A choice index, or for a word cloud the word this phone sent.
   function myVote(id) {
     try {
@@ -1687,13 +1702,21 @@
       if (currentScreen() === 'songs') renderSongs();
       const was = CONFIG;
       CONFIG = Object.assign({}, CONFIG, event);
+      const newRound = syncRound();
       board = top || [];
       mergeMessages(notes);
       setPolls(list || []);
       renderFeatures();
       refreshPhotos(photos);
       const onCamera = ['camera', 'review'].indexOf(currentScreen()) >= 0;
-      if (!pollShown && !onCamera && !['guestbook', 'booth', 'songs'].includes(currentScreen()) && (was.open !== CONFIG.open || was.full !== CONFIG.full)) route();
+      if (newRound) {
+        pollShown = null;
+        pendingFile = null;
+        pendingClip = null;
+        stopBooth();
+        messages = notes || [];
+        route();
+      } else if (!pollShown && !onCamera && !['guestbook', 'booth', 'songs'].includes(currentScreen()) && (was.open !== CONFIG.open || was.full !== CONFIG.full)) route();
       if (currentScreen() === 'guestbook') renderGuestbook();
       refreshDelay = REFRESH_MS;
     } catch (err) {
@@ -1726,6 +1749,7 @@
     try {
       const { event, photos, polls: firstPolls, messages: notes, board: top, live: liveNow, songs: songList } = await loadWithRetry();
       CONFIG = event;
+      syncRound();
       live = liveNow || {};
       songs = songList || [];
       setupLanguage();
