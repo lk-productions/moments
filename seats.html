@@ -33,6 +33,7 @@
     [hidden] { display: none !important; }
     p { margin: 0; }
     html.loading main { visibility: hidden; }
+    .retrying { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; margin: 0; text-align: center; color: var(--muted); }
     .logo { display: block; margin: 0 auto; max-width: 200px; max-height: 70px; object-fit: contain; }
     .eyebrow { margin: 8px 0 0; text-align: center; letter-spacing: .18em; text-transform: uppercase; font-size: 12px; color: var(--muted); }
     h1, h2 { font-family: var(--serif); font-weight: 600; text-align: center; margin: 0; line-height: 1.1; }
@@ -162,6 +163,7 @@
     <button class="btn secondary" id="again" data-t>Find another guest</button>
   </section>
 </main>
+<p class="retrying" id="retrying" hidden></p>
 <script>
 (async () => {
   const $ = (id) => document.getElementById(id);
@@ -178,6 +180,7 @@
     "The seating chart isn't up yet. Check back soon!": 'La distribución de mesas aún no está lista. ¡Vuelve pronto!',
     "Can't connect. Refresh to try again.": 'No se puede conectar. Recarga para intentarlo de nuevo.',
     'Event not found. Check the ?e= part of the link.': 'Evento no encontrado.',
+    'Busy moment. Still trying…': 'Hay mucha gente conectada. Seguimos intentando…',
   };
   let es = false;
   const t = (s) => (es && ES[s]) || s;
@@ -186,9 +189,25 @@
   const isPlaceholder = (n) => /['’]s guest$/i.test(n) || /^guest of /i.test(n);
   const first = (n) => n.replace(/^(mr|mrs|ms|miss|dr)\.?\s+/i, '').split(/\s+/)[0];
 
+  // Everyone arrives at once, so Google can briefly refuse. Try again a few times, spaced out with
+  // a little randomness, before asking the guest to refresh. Only "couldn't connect" is retried.
+  const RETRY_DELAYS = [2000, 5000, 8000];
+  async function withRetry(load) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await load();
+      } catch (err) {
+        if (err.code !== 'network' || attempt >= RETRY_DELAYS.length) throw err;
+        $('retrying').textContent = t('Busy moment. Still trying…');
+        $('retrying').hidden = false;
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt] * (0.75 + Math.random() * 0.5)));
+      }
+    }
+  }
+
   let event, seats, guests = [];
   try {
-    event = (await Camera.loadEvent()).event;
+    event = (await withRetry(() => Camera.loadEvent())).event;
     Camera.applyBranding(event, { background: 'phone' });
     es = !!event.features.spanish && /^es\b/i.test(navigator.language || '');
     Camera.setLang(es ? 'es' : 'en');
@@ -204,7 +223,7 @@
     $('camera').href = Camera.pageUrl('./');
     $('camera').textContent = '📷 ' + t(event.mode === 'event' ? 'Open the camera' : 'Be our photographer');
     $('cap').textContent = [event.title, event.date].filter(Boolean).join(' · ');
-    seats = await Camera.loadSeats();
+    seats = await withRetry(() => Camera.loadSeats());
     guests = seats.guests.map(([name, table, role], i) => ({ i, name, table: String(table), role: role || '', words: norm(name).split(' ') }));
     if (!guests.length) throw Object.assign(new Error('empty'), { code: 'off' });
   } catch (err) {
@@ -215,6 +234,7 @@
     $('hint').classList.add('error');
     document.querySelector('.place').hidden = true;
   }
+  $('retrying').hidden = true;
   document.documentElement.classList.remove('loading');
   Camera.fitTitles();
   if (!guests.length) return;
