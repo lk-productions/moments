@@ -197,6 +197,7 @@
     root.setProperty('--bg', t.background);
     root.setProperty('--card', t.card);
     root.setProperty('--ink', t.text);
+    root.setProperty('--title', t.title || t.text); // a theme can color its big titles
     root.setProperty('--muted', t.muted);
     root.setProperty('--accent', custom || t.accent);
     root.setProperty('--accent-ink', custom ? textOn(custom) : (t.accentText || '#fff'));

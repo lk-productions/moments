@@ -19,6 +19,8 @@ window.THEMES = {
   // Lewis University brand book: Lewis Red, warm greys, light beige.
   lewis:      { background: '#f5f3ec', card: '#ffffff', text: '#1a1a1a', muted: '#51534a', accent: '#940731', accentText: '#ffffff', line: '#e3e0d4' },
   // Lewis Athletics: Bold Red, black and grey from the athletics brand guide.
+  // Fall: warm paper, deep brown, and the cinnamon orange from the wedding's table signs.
+  cinnamon:   { background: '#fdf9f4', card: '#ffffff', text: '#3a2418', muted: '#76614f', accent: '#c2552b', accentText: '#ffffff', line: '#f0e0cf', title: '#c2552b' },
   lewisAthletics: { background: '#f3f3f4', card: '#ffffff', text: '#111111', muted: '#5f6063', accent: '#c22033', accentText: '#ffffff', line: '#e1e1e3' },
   blackTie:   { background: '#121212', card: '#1d1d1d', text: '#f3efe8', muted: '#a39d94', accent: '#c9a96a', accentText: '#1a1612', line: '#333030' },
 };
