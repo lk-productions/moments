@@ -7,8 +7,8 @@
   <title>LK Moments</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="config.js?v=20261104b"></script>
-  <script src="shared.js?v=20261104b"></script>
+  <script src="config.js?v=20261104c"></script>
+  <script src="shared.js?v=20261104c"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068;
@@ -248,6 +248,7 @@
     .voice-row { display: flex; gap: 10px; align-items: center; }
     .voice-row audio { flex: 1; min-width: 0; height: 40px; }
     .mini-btn.recording { border-color: var(--danger); color: var(--danger); }
+    .camera-links { display: flex; flex-wrap: wrap; justify-content: center; align-self: center; column-gap: 14px; }
     .to-welcome { align-self: center; background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; padding: 6px; }
     /* Language switch: top-right on every screen. */
     .lang-toggle {
@@ -350,7 +351,10 @@
       <span class="poll-go">Vote</span>
     </button>
     <p class="lead" style="font-size:14px">Tap the shutter to take a photo.</p>
-    <button class="to-welcome" id="to-welcome">‹ Back to the welcome page</button>
+    <div class="camera-links">
+      <button class="to-welcome" id="to-welcome">‹ Back to the welcome page</button>
+      <button class="to-welcome" data-seats-slot hidden>Find your seat</button>
+    </div>
   </section>
 
   <!-- Review -->

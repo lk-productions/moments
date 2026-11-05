@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-  <script src="config.js?v=20261104b"></script>
-  <script src="shared.js?v=20261104b"></script>
+  <script src="config.js?v=20261104c"></script>
+  <script src="shared.js?v=20261104c"></script>
   <style>
     :root {
       --bg: #f6f1ea; --card: #fffdf9; --ink: #2b2622; --muted: #7b7068; --accent: #a8784f; --line: #e6ddd2;
@@ -57,6 +57,11 @@
     .qr svg { width: 100%; height: 100%; display: block; }
     .steps { display: flex; gap: 14px; font-size: 9pt; color: var(--muted); }
     .steps b { display: block; color: var(--ink); font-size: 10pt; }
+    .features { display: flex; align-items: flex-start; gap: .16in; font-size: 9pt; color: var(--muted); line-height: 1.35; }
+    .features > div { flex: 1; }
+    .features > div + div { border-left: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); padding-left: .16in; }
+    .features svg { width: 20px; height: 20px; display: block; margin: 0 auto 2px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .features b { display: block; font-family: var(--serif); font-weight: 600; font-size: 15pt; line-height: 1.15; color: var(--ink); margin-bottom: 2px; }
     .names { font-family: var(--serif); font-style: italic; font-size: 20pt; margin: 0; }
     .date { font-size: 9pt; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 2px 0 0; }
 
@@ -86,7 +91,11 @@
       <p class="sub" data-copy="cardSub"></p>
     </div>
     <div class="qr" id="qr"></div>
-    <div class="steps">
+    <div class="features" id="features" hidden>
+      <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5a7 7 0 1 0-14 0C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><b>Find Your Seat</b>Type your name and see your table on the map.</div>
+      <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3.5L9 5.5h6L16.5 8H20a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg><b>Take Photos</b><span id="both-shots"></span></div>
+    </div>
+    <div class="steps" id="steps">
       <div><b>1. Scan</b>with your phone camera</div>
       <div><b id="step2">2. Shoot</b><span id="shots-step"></span></div>
       <div><b id="step3">3. Watch</b><span id="step3-text">them on the slideshow</span></div>
@@ -107,18 +116,31 @@
       Camera.applyCopy(event);
       document.getElementById('shots-step').textContent = event.shots + ' photos, no deleting';
       // ?for=seats: the "Find your seat" card, for the welcome table.
-      const seats = new URLSearchParams(location.search).get('for') === 'seats';
+      // ?for=both: one card showing both, on the camera link (its pages link to the seat finder).
+      const cardFor = new URLSearchParams(location.search).get('for');
+      const seats = cardFor === 'seats';
       const target = Camera.pageUrl(seats ? 'seats.html' : './');
       if (seats) {
         document.title = event.title + ' · Seating QR Card';
         const set = (sel, text) => document.querySelectorAll(sel).forEach((el) => { el.textContent = text; });
         set('[data-copy="cardEyebrow"]', 'Welcome');
-        set('[data-copy="cardTitle"]', 'Find your seat');
+        set('[data-copy="cardTitle"]', 'Find Your Seat');
         set('[data-copy="cardSub"]', "Scan with your phone, type your name, and we'll show you to your table.");
         set('#step2', '2. Type');
         set('#shots-step', 'your first or last name');
         set('#step3', '3. Find');
         set('#step3-text', 'your table on the map');
+      }
+
+      if (cardFor === 'both') {
+        document.title = event.title + ' · Seat and Camera QR Card';
+        const set = (sel, text) => document.querySelectorAll(sel).forEach((el) => { el.textContent = text; });
+        set('[data-copy="cardEyebrow"]', 'Start here');
+        set('[data-copy="cardTitle"]', 'Welcome');
+        set('[data-copy="cardSub"]', 'One scan for your seat and your camera. No app needed.');
+        document.getElementById('both-shots').textContent = 'Snap ' + event.shots + ' for the album and watch them on the slideshow.';
+        document.getElementById('steps').hidden = true;
+        document.getElementById('features').hidden = false;
       }
 
       const qr = qrcode(0, 'M');
